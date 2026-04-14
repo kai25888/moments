@@ -16,6 +16,80 @@ type UserHandler struct {
 	base BaseHandler
 }
 
+type userManageItem struct {
+	Id        int32     `json:"id"`
+	Username  string    `json:"username"`
+	Nickname  string    `json:"nickname"`
+	Email     string    `json:"email"`
+	AvatarUrl string    `json:"avatarUrl"`
+	CreatedAt *time.Time `json:"createdAt"`
+	UpdatedAt *time.Time `json:"updatedAt"`
+}
+
+// ListAllUsers godoc
+//
+//	@Tags		Admin
+//	@Summary	获取所有用户列表（仅管理员）
+//	@Accept		json
+//	@Produce	json
+//	@Param		x-api-token	header	string	true	"管理员TOKEN"
+//	@Success	200			{object}	[]userManageItem
+//	@Router		/api/user/list [post]
+func (u UserHandler) ListAllUsers(c echo.Context) error {
+	var users []db.User
+	u.base.db.Select("id", "username", "nickname", "email", "avatarUrl", "createdAt", "updatedAt").Order("id asc").Find(&users)
+	var result []userManageItem
+	for _, user := range users {
+		result = append(result, userManageItem{
+			Id:        user.Id,
+			Username:  user.Username,
+			Nickname:  user.Nickname,
+			Email:     user.Email,
+			AvatarUrl: user.AvatarUrl,
+			CreatedAt: user.CreatedAt,
+			UpdatedAt: user.UpdatedAt,
+		})
+	}
+	return SuccessResp(c, result)
+}
+
+// DeleteUser godoc
+//
+//	@Tags		Admin
+//	@Summary	删除指定用户（仅管理员）
+//	@Accept		json
+//	@Produce	json
+//	@Param		object	body		object	true	"用户ID"
+//	@Param		x-api-token	header	string	true	"管理员TOKEN"
+//	@Success	200
+//	@Router		/api/user/delete [post]
+func (u UserHandler) DeleteUser(c echo.Context) error {
+	var req struct {
+		Id int32 `json:"id"`
+	}
+	if err := c.Bind(&req); err != nil {
+		return FailResp(c, ParamError)
+	}
+	if req.Id <= 0 {
+		return FailRespWithMsg(c, ParamError, "无效的用户ID")
+	}
+	// 不允许删除自己
+	context := c.(CustomContext)
+	currentUser := context.CurrentUser()
+	if currentUser != nil && currentUser.Id == req.Id {
+		return FailRespWithMsg(c, Fail, "不能删除当前登录的管理员账号")
+	}
+	// 删除用户的 memo 和 comment
+	u.base.db.Where("userId = ?", req.Id).Delete(&db.Memo{})
+	u.base.db.Where("userId = ?", req.Id).Delete(&db.Comment{})
+	// 删除用户
+	if err := u.base.db.Delete(&db.User{}, req.Id).Error; err != nil {
+		u.base.log.Error().Msgf("删除用户异常:%s", err)
+		return FailRespWithMsg(c, InternalError, "删除用户失败")
+	}
+	return SuccessResp(c, h{})
+}
+
 type loginSuccessDTO struct {
 	Token    string `json:"token,omitempty"`    // token
 	Username string `json:"username,omitempty"` //用户名

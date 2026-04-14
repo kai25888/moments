@@ -111,6 +111,42 @@
       </template>
     <UButton class="justify-center" color="red" @click="showCleanFileModal = true">清理已上传的文件</UButton>
     <UButton class="justify-center" @click="save">保存</UButton>
+
+    <!-- 用户管理模块 -->
+    <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <h2 class="text-lg font-bold mb-4 text-gray-800 dark:text-gray-200">用户管理</h2>
+      <div v-if="usersLoading" class="text-center text-gray-400 py-4">加载中...</div>
+      <div v-else-if="users.length === 0" class="text-center text-gray-400 py-4">暂无用户</div>
+      <div v-else class="space-y-3">
+        <div
+          v-for="user in users"
+          :key="user.id"
+          class="flex items-center justify-between p-4 bg-gray-50 dark:bg-neutral-700 rounded-xl hover:bg-gray-100 dark:hover:bg-neutral-600 transition-colors"
+        >
+          <div class="flex items-center gap-3">
+            <UAvatar :src="user.avatarUrl" :alt="user.nickname" size="lg" />
+            <div>
+              <div class="font-medium text-gray-800 dark:text-gray-200">{{ user.nickname || user.username }}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">@{{ user.username }}</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                注册时间: {{ user.createdAt ? $dayjs(user.createdAt).format('YYYY-MM-DD HH:mm') : '-' }}
+              </div>
+            </div>
+          </div>
+          <UButton
+            v-if="user.id !== currentUser?.id"
+            color="red"
+            size="sm"
+            icon="i-heroicons-trash"
+            :loading="deletingUserId === user.id"
+            @click="confirmDeleteUser(user)"
+          >
+            删除
+          </UButton>
+          <span v-else class="text-xs text-gray-400 bg-gray-200 dark:bg-neutral-600 px-2 py-1 rounded">当前账号</span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <UModal
@@ -128,6 +164,23 @@
         <UButton @click="cleanFile">确认清理</UButton>
       </div>
         </div>
+  </UModal>
+
+  <UModal
+    v-model="showDeleteUserModal"
+    :ui="{
+      container:
+        'flex justify-center items-center backdrop-blur',
+    }"
+  >
+    <div class="p-4 bg-white dark:bg-neutral-800 rounded-lg shadow-md">
+      <p class="text-lg font-bold mb-2 text-red-600">删除用户</p>
+      <p class="text-gray-600 mb-4">确认要删除用户 <span class="font-bold text-gray-800 dark:text-gray-200">{{ deleteTargetUser?.nickname || deleteTargetUser?.username }}</span> 吗？该用户的所有动态和评论将被同时删除，此操作不可撤销。</p>
+      <div class="flex justify-end gap-2 mt-4">
+        <UButton color="white" @click="showDeleteUserModal = false">取消</UButton>
+        <UButton color="red" :loading="!!deletingUserId" @click="deleteUser">确认删除</UButton>
+      </div>
+    </div>
   </UModal>
 </template>
 
@@ -176,6 +229,56 @@ const state = reactive({
 
 const showCleanFileModal = ref<boolean>(false);
 
+// 用户管理
+interface UserManageItem {
+  id: number;
+  username: string;
+  nickname: string;
+  email: string;
+  avatarUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+const users = ref<UserManageItem[]>([]);
+const usersLoading = ref(false);
+const deletingUserId = ref<number | null>(null);
+const deleteTargetUser = ref<UserManageItem | null>(null);
+const showDeleteUserModal = ref(false);
+
+const loadUsers = async () => {
+  usersLoading.value = true;
+  try {
+    const res = await useMyFetch<UserManageItem[]>('/user/list');
+    if (res) {
+      users.value = res;
+    }
+  } finally {
+    usersLoading.value = false;
+  }
+};
+
+const confirmDeleteUser = (user: UserManageItem) => {
+  deleteTargetUser.value = user;
+  showDeleteUserModal.value = true;
+};
+
+const deleteUser = async () => {
+  if (!deleteTargetUser.value) return;
+  deletingUserId.value = deleteTargetUser.value.id;
+  try {
+    await useMyFetch('/user/delete', { id: deleteTargetUser.value.id });
+    toast.success(`已删除用户 ${deleteTargetUser.value.nickname || deleteTargetUser.value.username}`);
+    showDeleteUserModal.value = false;
+    deleteTargetUser.value = null;
+    await loadUsers();
+  } catch (error: any) {
+    toast.error(error?.message || '删除失败');
+  } finally {
+    deletingUserId.value = null;
+  }
+};
+
 const reload = async () => {
   const res = await useMyFetch<SysConfigVO>('/sysConfig/getFull')
   if (res) {
@@ -215,6 +318,7 @@ const cleanFile = async () => {
 
 onMounted(async () => {
   await reload()
+  await loadUsers()
 })
 
 </script>
