@@ -37,10 +37,11 @@ jobs:
       - name: Extract Version
         run: |
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # 如果是 tag 触发，使用 tag 名称作为版本
+            # 如果是 tag 触发，使用 tag 名称作为版本（将 / 替换为 -）
             TAG_NAME=${GITHUB_REF#refs/tags/}
-            echo "VERSION_TAG=${TAG_NAME}" >> $GITHUB_ENV
-            echo "VERSION=${TAG_NAME}" >> $GITHUB_ENV
+            SAFE_TAG=$(echo "${TAG_NAME}" | sed 's/\//-/g')
+            echo "VERSION_TAG=${SAFE_TAG}" >> $GITHUB_ENV
+            echo "VERSION=${SAFE_TAG}" >> $GITHUB_ENV
           else
             # 如果是分支触发，使用分支名+日期+commit
             echo "VERSION_TAG=tech-standards" >> $GITHUB_ENV
