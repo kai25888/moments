@@ -135,6 +135,55 @@
         <UInput v-model="state.smtpPassword" type="password"/>
       </UFormGroup>
       </template>
+    <div class="space-y-1 pt-4">
+      <div class="text-sm font-semibold text-gray-900 dark:text-white">用户管理</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400">查看所有用户，支持编辑昵称/邮箱/签名、重置密码，以及删除没有内容的普通用户。</div>
+    </div>
+    <div class="rounded-2xl border border-black/5 bg-white/70 p-4 shadow-sm dark:border-white/10 dark:bg-neutral-900/70">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <div class="text-sm text-gray-500 dark:text-gray-400">共 {{ users.length }} 个用户</div>
+        <UButton size="sm" color="gray" variant="soft" @click="loadUsers" :loading="userLoading">刷新列表</UButton>
+      </div>
+      <div v-if="users.length" class="space-y-3">
+        <div
+          v-for="user in users"
+          :key="user.id"
+          class="rounded-2xl border border-black/5 bg-white/90 p-4 dark:border-white/10 dark:bg-neutral-800/80"
+        >
+          <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0 space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="truncate text-base font-semibold text-gray-900 dark:text-white">
+                  {{ user.nickname || user.username }}
+                </span>
+                <UBadge v-if="user.id === 1" size="xs" color="emerald" variant="soft">管理员</UBadge>
+              </div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">@{{ user.username }}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-300">{{ user.email || "未填写邮箱" }}</div>
+              <div class="text-sm text-gray-600 dark:text-gray-300">{{ user.slogan || "未填写签名" }}</div>
+              <div class="text-xs text-gray-400 dark:text-gray-500">
+                创建于 {{ formatDate(user.createdAt) }}
+              </div>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <UButton size="sm" color="gray" variant="soft" @click="openUserEditor(user)">编辑</UButton>
+              <UButton
+                size="sm"
+                color="red"
+                variant="soft"
+                :disabled="user.id === 1 || userDeletePending"
+                @click="confirmDeleteUser(user)"
+              >
+                删除
+              </UButton>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="rounded-xl border border-dashed border-black/10 px-4 py-8 text-center text-sm text-gray-500 dark:border-white/10 dark:text-gray-400">
+        当前还没有可展示的用户数据
+      </div>
+    </div>
     <UButton class="justify-center" color="red" @click="showCleanFileModal = true">清理已上传的文件</UButton>
     <UButton class="justify-center" @click="save">保存</UButton>
   </div>
@@ -155,10 +204,60 @@
       </div>
         </div>
   </UModal>
+
+  <UModal
+    v-model="showUserEditor"
+    :ui="{
+      container: 'flex justify-center items-center backdrop-blur',
+    }"
+  >
+    <div class="w-full max-w-lg rounded-2xl bg-white p-5 shadow-md dark:bg-neutral-800">
+      <div class="mb-4">
+        <div class="text-lg font-bold text-gray-900 dark:text-white">编辑用户</div>
+        <div class="mt-1 text-sm text-gray-500 dark:text-gray-400">@{{ editingUser.username }}</div>
+      </div>
+      <div class="space-y-4">
+        <UFormGroup label="昵称" name="nickname" :ui="{label:{base:'font-bold'}}">
+          <UInput v-model="editingUser.nickname"/>
+        </UFormGroup>
+        <UFormGroup label="邮箱" name="email" :ui="{label:{base:'font-bold'}}">
+          <UInput v-model="editingUser.email"/>
+        </UFormGroup>
+        <UFormGroup label="签名" name="slogan" :ui="{label:{base:'font-bold'}}">
+          <UTextarea v-model="editingUser.slogan" :rows="3"/>
+        </UFormGroup>
+        <UFormGroup label="重置密码（留空则不修改）" name="password" :ui="{label:{base:'font-bold'}}">
+          <UInput v-model="editingUser.password" type="password" placeholder="输入新密码"/>
+        </UFormGroup>
+      </div>
+      <div class="mt-5 flex justify-end gap-2">
+        <UButton color="gray" variant="soft" @click="showUserEditor = false">取消</UButton>
+        <UButton :loading="userSavePending" @click="saveUser">保存用户</UButton>
+      </div>
+    </div>
+  </UModal>
+
+  <UModal
+    v-model="showDeleteUserModal"
+    :ui="{
+      container: 'flex justify-center items-center backdrop-blur',
+    }"
+  >
+    <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-md dark:bg-neutral-800">
+      <div class="text-lg font-bold text-gray-900 dark:text-white">确认删除用户</div>
+      <div class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+        即将删除用户 <span class="font-semibold">{{ deletingUser?.username }}</span>。如果该用户还有动态或评论，系统会阻止删除。
+      </div>
+      <div class="mt-5 flex justify-end gap-2">
+        <UButton color="gray" variant="soft" @click="showDeleteUserModal = false">取消</UButton>
+        <UButton color="red" :loading="userDeletePending" @click="deleteUser">确认删除</UButton>
+      </div>
+    </div>
+  </UModal>
 </template>
 
 <script setup lang="ts">
-import type {SysConfigVO, UserVO} from "~/types";
+import type {AdminUserVO, SysConfigVO, UserVO} from "~/types";
 import {toast} from "vue-sonner";
 import {useUpload} from "~/utils";
 
@@ -206,6 +305,21 @@ const state = reactive({
 })
 
 const showCleanFileModal = ref<boolean>(false);
+const users = ref<Array<AdminUserVO>>([])
+const userLoading = ref(false)
+const showUserEditor = ref(false)
+const showDeleteUserModal = ref(false)
+const userSavePending = ref(false)
+const userDeletePending = ref(false)
+const deletingUser = ref<AdminUserVO | null>(null)
+const editingUser = reactive({
+  id: 0,
+  username: "",
+  nickname: "",
+  email: "",
+  slogan: "",
+  password: "",
+})
 
 const reload = async () => {
   const res = await useMyFetch<SysConfigVO>('/sysConfig/getFull')
@@ -213,6 +327,17 @@ const reload = async () => {
     Object.assign(state, res)
     version.value = res.version
     commitId.value = res.commitId
+  }
+}
+
+const loadUsers = async () => {
+  userLoading.value = true
+  try {
+    users.value = await useMyFetch<Array<AdminUserVO>>('/user/list')
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : '读取用户列表失败')
+  } finally {
+    userLoading.value = false
   }
 }
 
@@ -244,8 +369,69 @@ const cleanFile = async () => {
   }
 }
 
+const openUserEditor = (user: AdminUserVO) => {
+  editingUser.id = user.id
+  editingUser.username = user.username
+  editingUser.nickname = user.nickname || ""
+  editingUser.email = user.email || ""
+  editingUser.slogan = user.slogan || ""
+  editingUser.password = ""
+  showUserEditor.value = true
+}
+
+const saveUser = async () => {
+  userSavePending.value = true
+  try {
+    await useMyFetch('/user/adminSave', {
+      id: editingUser.id,
+      nickname: editingUser.nickname,
+      email: editingUser.email,
+      slogan: editingUser.slogan,
+      password: editingUser.password,
+    })
+    toast.success('用户信息已更新')
+    showUserEditor.value = false
+    await loadUsers()
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : '保存用户失败')
+  } finally {
+    userSavePending.value = false
+  }
+}
+
+const confirmDeleteUser = (user: AdminUserVO) => {
+  deletingUser.value = user
+  showDeleteUserModal.value = true
+}
+
+const deleteUser = async () => {
+  if (!deletingUser.value) {
+    return
+  }
+  userDeletePending.value = true
+  try {
+    await useMyFetch('/user/delete?id=' + deletingUser.value.id)
+    toast.success('用户已删除')
+    showDeleteUserModal.value = false
+    deletingUser.value = null
+    await loadUsers()
+  } catch (error) {
+    toast.error(error instanceof Error ? error.message : '删除用户失败')
+  } finally {
+    userDeletePending.value = false
+  }
+}
+
+const formatDate = (value?: string) => {
+  if (!value) {
+    return '未知时间'
+  }
+  return value.replace('T', ' ').slice(0, 16)
+}
+
 onMounted(async () => {
   await reload()
+  await loadUsers()
 })
 
 </script>

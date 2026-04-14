@@ -56,6 +56,18 @@ export type UserVO = {
     coverUrl: string
     email: string
 }
+
+export type AdminUserVO = {
+    id: number
+    username: string
+    nickname: string
+    avatarUrl: string
+    slogan: string
+    coverUrl: string
+    email: string
+    createdAt?: string
+    updatedAt?: string
+}
 export type SysConfigVO = {
     version: string,
     commitId: string,

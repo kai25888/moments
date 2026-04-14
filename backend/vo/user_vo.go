@@ -1,5 +1,7 @@
 package vo
 
+import "time"
+
 type LoginReq struct {
 	Username string `json:"username,omitempty"` //用户名
 	Password string `json:"password,omitempty"` //密码
@@ -19,4 +21,24 @@ type ProfileReq struct {
 	CoverUrl  string `json:"coverUrl,omitempty"`  //封面URL
 	Password  string `json:"password,omitempty"`  //密码,不修改不要填写
 	Email     string `json:"email,omitempty"`     //邮箱
+}
+
+type AdminUserVO struct {
+	ID        int32      `json:"id,omitempty"`
+	Username  string     `json:"username,omitempty"`
+	Nickname  string     `json:"nickname,omitempty"`
+	AvatarUrl string     `json:"avatarUrl,omitempty"`
+	Slogan    string     `json:"slogan,omitempty"`
+	CoverUrl  string     `json:"coverUrl,omitempty"`
+	Email     string     `json:"email,omitempty"`
+	CreatedAt *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+type AdminUserSaveReq struct {
+	ID       int32  `json:"id,omitempty"`
+	Nickname string `json:"nickname,omitempty"`
+	Slogan   string `json:"slogan,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
 }

@@ -2,6 +2,8 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -10,6 +12,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/samber/do/v2"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
@@ -206,5 +209,127 @@ func (u UserHandler) SaveProfile(c echo.Context) error {
 	if err := u.base.db.Save(&user).Error; err != nil {
 		return FailResp(c, Fail)
 	}
+	return SuccessResp(c, h{})
+}
+
+// ListUsers godoc
+//
+//	@Tags		User
+//	@Summary	管理员获取用户列表
+//	@Accept		json
+//	@Produce	json
+//	@Param		x-api-token	header	string	true	"登录TOKEN"
+//	@Success	200
+//	@Router		/api/user/list [post]
+func (u UserHandler) ListUsers(c echo.Context) error {
+	context := c.(CustomContext)
+	currentUser := context.CurrentUser()
+	if currentUser == nil || currentUser.Id != 1 {
+		return FailRespWithMsg(c, Fail, "没有权限")
+	}
+
+	var users []vo.AdminUserVO
+	if err := u.base.db.Table("User").
+		Select("id", "username", "nickname", "avatarUrl", "slogan", "coverUrl", "email", "createdAt", "updatedAt").
+		Order("id asc").
+		Find(&users).Error; err != nil {
+		return FailRespWithMsg(c, Fail, "读取用户列表失败")
+	}
+
+	return SuccessResp(c, users)
+}
+
+// AdminSaveUser godoc
+//
+//	@Tags		User
+//	@Summary	管理员保存用户资料
+//	@Accept		json
+//	@Produce	json
+//	@Param		object		body	vo.AdminUserSaveReq	true	"管理员保存用户资料"
+//	@Param		x-api-token	header	string				true	"登录TOKEN"
+//	@Success	200
+//	@Router		/api/user/adminSave [post]
+func (u UserHandler) AdminSaveUser(c echo.Context) error {
+	var req vo.AdminUserSaveReq
+	if err := c.Bind(&req); err != nil {
+		return FailResp(c, ParamError)
+	}
+
+	context := c.(CustomContext)
+	currentUser := context.CurrentUser()
+	if currentUser == nil || currentUser.Id != 1 {
+		return FailRespWithMsg(c, Fail, "没有权限")
+	}
+
+	var user db.User
+	if err := u.base.db.First(&user, req.ID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		return FailRespWithMsg(c, Fail, "用户不存在")
+	}
+
+	user.Nickname = req.Nickname
+	user.Slogan = req.Slogan
+	user.Email = req.Email
+
+	if req.Password != "" {
+		password, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
+		if err != nil {
+			return FailRespWithMsg(c, Fail, "密码加密失败")
+		}
+		user.Password = string(password)
+	}
+
+	if err := u.base.db.Save(&user).Error; err != nil {
+		return FailRespWithMsg(c, Fail, "保存用户失败")
+	}
+
+	return SuccessResp(c, h{})
+}
+
+// DeleteUser godoc
+//
+//	@Tags		User
+//	@Summary	管理员删除用户
+//	@Accept		json
+//	@Produce	json
+//	@Param		id			query	int		true	"用户ID"
+//	@Param		x-api-token	header	string	true	"登录TOKEN"
+//	@Success	200
+//	@Router		/api/user/delete [post]
+func (u UserHandler) DeleteUser(c echo.Context) error {
+	context := c.(CustomContext)
+	currentUser := context.CurrentUser()
+	if currentUser == nil || currentUser.Id != 1 {
+		return FailRespWithMsg(c, Fail, "没有权限")
+	}
+
+	id, err := strconv.Atoi(c.QueryParam("id"))
+	if err != nil || id <= 0 {
+		return FailResp(c, ParamError)
+	}
+	if int32(id) == currentUser.Id || id == 1 {
+		return FailRespWithMsg(c, Fail, "管理员账号不允许删除")
+	}
+
+	var user db.User
+	if err = u.base.db.First(&user, id).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		return FailRespWithMsg(c, Fail, "用户不存在")
+	}
+
+	var memoCount int64
+	u.base.db.Table("Memo").Where("userId = ?", id).Count(&memoCount)
+	if memoCount > 0 {
+		return FailRespWithMsg(c, Fail, "该用户仍有动态内容，暂不支持直接删除")
+	}
+
+	var commentCount int64
+	u.base.db.Table("Comment").Where("author = ?", id).Count(&commentCount)
+	if commentCount > 0 {
+		return FailRespWithMsg(c, Fail, "该用户仍有评论内容，暂不支持直接删除")
+	}
+
+	if err = u.base.db.Delete(&user).Error; err != nil {
+		return FailRespWithMsg(c, Fail, "删除用户失败")
+	}
+
 	return SuccessResp(c, h{})
 }

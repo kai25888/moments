@@ -28,6 +28,9 @@ func setupRouter(injector do.Injector) {
 	userGroup.POST("/profile", userHandler.Profile)
 	userGroup.POST("/profile/:username", userHandler.ProfileForUser)
 	userGroup.POST("/saveProfile", userHandler.SaveProfile)
+	userGroup.POST("/list", userHandler.ListUsers)
+	userGroup.POST("/adminSave", userHandler.AdminSaveUser)
+	userGroup.POST("/delete", userHandler.DeleteUser)
 
 	memoGroup := apiGroup.Group("/memo")
 	memoGroup.POST("/list", memoHandler.ListMemos)
