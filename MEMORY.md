@@ -17,6 +17,7 @@
   - `ghcr.io/kai25888/moments-plus:latest`
 - `moments-plus/v*` namespaced tags publish to:
   - `ghcr.io/kai25888/moments-plus:vX.Y.Z`
+- `moments-plus/main` and `moments-plus/v*` may share one workflow as long as GitHub Actions still shows distinct refs for branch and tag runs.
 - `tech-standards/main` branch images publish to:
   - `ghcr.io/kai25888/tech-standards:latest`
 - `tech-standards/*` namespaced tags publish to:
@@ -31,12 +32,11 @@
 ## Implemented Direction So Far
 - Added branding-related configuration fields and connected them to the homepage, layout, footer, and admin settings page.
 - Hardened multiple security and stability risks in frontend and backend flows.
-- Added a dedicated branch image workflow for `moments-plus/main`.
-- Added a dedicated namespaced tag image workflow for `moments-plus/v*`.
+- Consolidated `moments-plus/main` and `moments-plus/v*` image publishing into one workflow while keeping refs distinguishable in Actions.
 
 ## Deployment Notes
 - The fork is optimized for direct image pulls on a NAS.
-- Keep the fork's deployment path simple: branch builds for continuous testing, namespaced tag builds for explicit versions.
+- Keep the fork's deployment path simple: one product line can use one workflow for both branch builds and namespaced tag builds when the Actions history stays easy to read.
 - Canonical NAS pull commands:
   - `docker pull ghcr.io/kai25888/moments-plus:latest`
   - `docker pull ghcr.io/kai25888/moments-plus:v0.0.1`

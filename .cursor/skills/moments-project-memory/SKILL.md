@@ -26,6 +26,7 @@ These facts should be treated as current long-term defaults unless the user chan
 - Do not replace or redefine upstream-style `v*` tags.
 - `moments-plus/main` branch images publish to `ghcr.io/kai25888/moments-plus:latest`.
 - `moments-plus/v*` namespaced tag images publish to `ghcr.io/kai25888/moments-plus:vX.Y.Z`.
+- `moments-plus` branch and tag image publishing may share one workflow as long as `moments-plus/main` and `moments-plus/v*` remain distinguishable in GitHub Actions.
 - `tech-standards/main` branch images publish to `ghcr.io/kai25888/tech-standards:latest`.
 - `tech-standards/*` namespaced tag images publish to `ghcr.io/kai25888/tech-standards:vX.Y.Z`.
 - The fork is intended for self-hosted deployment, especially NAS-friendly Docker pulls.

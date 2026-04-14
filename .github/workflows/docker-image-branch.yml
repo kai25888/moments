@@ -1,9 +1,11 @@
-name: Build And Upload Image For Moments Plus Branch
+name: Build And Upload Image For Moments Plus
 
 on:
   push:
     branches:
       - moments-plus/main
+    tags:
+      - moments-plus/v*
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,9 +31,18 @@ jobs:
       - name: Prepare image metadata
         run: |
           echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/moments-plus" >> $GITHUB_ENV
-          echo "IMAGE_TAG=latest" >> $GITHUB_ENV
-          echo "VERSION=main" >> $GITHUB_ENV
           echo "COMMIT_ID=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+          if [[ "${GITHUB_REF}" == "refs/heads/moments-plus/main" ]]; then
+            echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+            echo "VERSION=main" >> $GITHUB_ENV
+          elif [[ "${GITHUB_REF}" == refs/tags/moments-plus/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/moments-plus/}"
+            echo "IMAGE_TAG=${VERSION}" >> $GITHUB_ENV
+            echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          else
+            echo "Unsupported ref: ${GITHUB_REF}" >&2
+            exit 1
+          fi
 
       - name: Login to GHCR
         uses: docker/login-action@v3
