@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - tech-standards/main
+    tags:
+      - 'tech-standards/*'
   workflow_dispatch:
 
 concurrency:
@@ -34,8 +36,16 @@ jobs:
 
       - name: Extract Version
         run: |
-          echo "VERSION_TAG=tech-standards" >> $GITHUB_ENV
-          echo "VERSION=tech-standards-$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # 如果是 tag 触发，使用 tag 名称作为版本
+            TAG_NAME=${GITHUB_REF#refs/tags/}
+            echo "VERSION_TAG=${TAG_NAME}" >> $GITHUB_ENV
+            echo "VERSION=${TAG_NAME}" >> $GITHUB_ENV
+          else
+            # 如果是分支触发，使用分支名+日期+commit
+            echo "VERSION_TAG=tech-standards" >> $GITHUB_ENV
+            echo "VERSION=tech-standards-$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+          fi
           echo "COMMIT_ID=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
           echo "BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
 
@@ -49,7 +59,7 @@ jobs:
             linux/amd64
             linux/arm64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/moments:tech-standards
+            ghcr.io/${{ github.repository_owner }}/moments:${{ env.VERSION_TAG }}
             ghcr.io/${{ github.repository_owner }}/moments:${{ env.VERSION }}
           build-args: |
             VERSION=${{ env.VERSION }}
