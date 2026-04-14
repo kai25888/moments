@@ -19,7 +19,7 @@ func handleEmptyConfig(log zerolog.Logger, cfg *vo.AppConfig) {
 	log.Debug().Str("数据库[DB]", cfg.DB).
 		Str("跨域[CORS_ORIGIN]", cfg.CorsOrigin).
 		Int("端口[PORT]", cfg.Port).
-		Str("JWT密钥[JWT_KEY]", cfg.JwtKey).
+		Bool("JWT密钥已配置[JWT_KEY_SET]", cfg.JwtKey != "").
 		Str("上传目录[UPLOAD_DIR]", cfg.UploadDir).
 		Str("日志级别[LOG_LEVEL]", cfg.LogLevel).
 		Bool("是否启用Swagger文档[ENABLE_SWAGGER]", cfg.EnableSwagger).
@@ -47,6 +47,6 @@ func handleEmptyConfig(log zerolog.Logger, cfg *vo.AppConfig) {
 
 	if cfg.JwtKey == "" {
 		cfg.JwtKey = strings.ReplaceAll(uuid.NewString(), "-", "")
-		log.Debug().Msgf("JWT_KEY没有配置,随机生成为%s,每次重启服务需要重新登录,配置后则不会", cfg.JwtKey)
+		log.Debug().Msg("JWT_KEY没有配置,已生成临时密钥; 每次重启服务后需要重新登录")
 	}
 }

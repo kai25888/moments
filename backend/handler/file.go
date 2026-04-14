@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"os"
 	"path"
 	"path/filepath"
@@ -62,66 +63,67 @@ func (f FileHandler) Upload(c echo.Context) error {
 
 	files := form.File["files"]
 	for _, file := range files {
-		// 原始文件数据
-		reader, err := file.Open()
-		if err != nil {
-			f.base.log.Error().Msgf("打开上传文件异常: %v", err)
-			return FailRespWithMsg(c, Fail, "上传文件异常")
-		}
-		defer reader.Close()
-
-		// 计算文件 hash
-		sha256, err := fs_util.Sha256(reader)
-		if err != nil {
-			f.base.log.Error().Msgf("计算文件 hash 异常: %v", err)
-			return FailRespWithMsg(c, Fail, "上传文件异常")
-		}
-
-		// 计算文件后缀
-		ext := filepath.Ext(file.Filename)
-
-		// 计算文件本地路径
-		filename := fmt.Sprintf("%s%s", sha256, ext)
-		filePath := path.Join(f.base.cfg.UploadDir, filename)
-
-		// 添加到结果中
-		result = append(result, "/upload/"+filename)
-
-		// 如果文件存在，则跳过保存操作
-		if fs_util.Exists(filePath) {
-			continue
-		}
-
-		// 创建原始文件
-		dst, err := os.Create(filePath)
-		if err != nil {
-			f.base.log.Error().Msgf("打开目标文件异常: %v", err)
-			return FailRespWithMsg(c, Fail, "上传文件异常")
-		}
-		defer dst.Close()
-
-		// 重置文件指针到开头
-		if seeker, ok := reader.(io.Seeker); ok {
-			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
-				f.base.log.Error().Msgf("重置文件指针异常: %v", err)
-				return FailRespWithMsg(c, Fail, "上传文件异常")
+		savedPath, err := func(file *multipart.FileHeader) (string, error) {
+			// 原始文件数据
+			reader, err := file.Open()
+			if err != nil {
+				return "", err
 			}
-		}
+			defer reader.Close()
 
-		// 保存文件数据
-		if _, err = io.Copy(dst, reader); err != nil {
-			f.base.log.Error().Msgf("复制文件异常: %v", err)
+			// 计算文件 hash
+			sha256, err := fs_util.Sha256(reader)
+			if err != nil {
+				return "", err
+			}
+
+			// 计算文件后缀
+			ext := filepath.Ext(file.Filename)
+
+			// 计算文件本地路径
+			filename := fmt.Sprintf("%s%s", sha256, ext)
+			filePath := path.Join(f.base.cfg.UploadDir, filename)
+
+			// 如果文件存在，则跳过保存操作
+			if fs_util.Exists(filePath) {
+				return "/upload/" + filename, nil
+			}
+
+			// 创建原始文件
+			dst, err := os.Create(filePath)
+			if err != nil {
+				return "", err
+			}
+			defer dst.Close()
+
+			// 重置文件指针到开头
+			if seeker, ok := reader.(io.Seeker); ok {
+				if _, err := seeker.Seek(0, io.SeekStart); err != nil {
+					return "", err
+				}
+			}
+
+			// 保存文件数据
+			if _, err = io.Copy(dst, reader); err != nil {
+				return "", err
+			}
+
+			// 生成并保存缩略图文件
+			if SupportCompress(filename) {
+				thumbFilename := fmt.Sprintf("%s_thumb%s", sha256, ext)
+				thumbFilepath := path.Join(f.base.cfg.UploadDir, thumbFilename)
+				if err := CompressImage(f, filePath, thumbFilepath, 30); err != nil {
+					f.base.log.Error().Msgf("压缩文件异常: %v", err)
+				}
+			}
+
+			return "/upload/" + filename, nil
+		}(file)
+		if err != nil {
+			f.base.log.Error().Msgf("处理上传文件异常: %v", err)
 			return FailRespWithMsg(c, Fail, "上传文件异常")
 		}
-
-		// 生成并保存缩略图文件
-		if SupportCompress(filename) {
-			thumb_filename := fmt.Sprintf("%s_thumb%s", sha256, ext)
-			thumb_filepath := path.Join(f.base.cfg.UploadDir, thumb_filename)
-			if err := CompressImage(f, filePath, thumb_filepath, 30); err != nil {
-				f.base.log.Error().Msgf("压缩文件异常: %v", err)
-			}
-		}
+		result = append(result, savedPath)
 	}
 
 	return SuccessResp(c, result)
@@ -300,6 +302,12 @@ func (f FileHandler) S3PreSigned(c echo.Context) error {
 		return FailResp(c, ParamError)
 	}
 
+	ctx := c.(CustomContext)
+	currentUser := ctx.CurrentUser()
+	if currentUser == nil || currentUser.Id != 1 {
+		return FailRespWithMsg(c, Fail, "没有权限")
+	}
+
 	if err := f.base.db.First(&sysConfig).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		return FailResp(c, Fail)
 	}
@@ -307,6 +315,16 @@ func (f FileHandler) S3PreSigned(c echo.Context) error {
 	if err := json.Unmarshal([]byte(sysConfig.Content), &sysConfigVo); err != nil {
 		f.base.log.Error().Msgf("无法反序列化系统配置, %s", err)
 		return FailRespWithMsg(c, Fail, err.Error())
+	}
+	if !sysConfigVo.EnableS3 {
+		return FailRespWithMsg(c, Fail, "未启用S3存储")
+	}
+	if sysConfigVo.S3.Bucket == "" || sysConfigVo.S3.Region == "" || sysConfigVo.S3.Endpoint == "" ||
+		sysConfigVo.S3.Domain == "" || sysConfigVo.S3.AccessKey == "" || sysConfigVo.S3.SecretKey == "" {
+		return FailRespWithMsg(c, Fail, "S3配置不完整")
+	}
+	if req.ContentType == "" {
+		return FailRespWithMsg(c, ParamError, "contentType不能为空")
 	}
 
 	cfg, err := config.LoadDefaultConfig(

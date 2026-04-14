@@ -254,7 +254,12 @@ onMounted(async () => {
     const res = await useMyFetch<MemoVO>('/memo/get?id=' + state.id)
     Object.assign(state, res)
     state.showType = res.showType === 1
-    const ext = JSON.parse(res.ext) as ExtDTO
+    let ext = {} as ExtDTO
+    try {
+      ext = JSON.parse(res.ext) as ExtDTO
+    } catch {
+      ext = {} as ExtDTO
+    }
     Object.assign(state.music, ext.music)
     Object.assign(state.video, ext.video)
     doubanType.value = ext.doubanBook && ext.doubanBook.title ? 'book' : 'movie'

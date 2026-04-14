@@ -324,8 +324,19 @@ const currentCommentBox = useState("currentCommentBox");
 const props = defineProps<{
   memo: MemoVO;
 }>();
+const getLikedMemos = () => {
+  try {
+    return JSON.parse(localStorage.getItem("likeMemos") || "[]") as Array<number>;
+  } catch {
+    return [];
+  }
+};
 const extJSON = computed(() => {
-  return JSON.parse(props.memo.ext || "{}") as ExtDTO;
+  try {
+    return JSON.parse(props.memo.ext || "{}") as ExtDTO;
+  } catch {
+    return {} as ExtDTO;
+  }
 });
 const item = computed(() => {
   return props.memo;
@@ -396,9 +407,7 @@ const setPinned = async (id: number) => {
 };
 
 const doLike = async (id: number, token: string = "") => {
-  const likes = JSON.parse(
-    localStorage.getItem("likeMemos") || "[]"
-  ) as Array<number>;
+  const likes = getLikedMemos();
   await useMyFetch(`/memo/like?id=${id}&token=${token}`);
   toast.success("点赞成功!");
   likes.push(id);
@@ -409,9 +418,7 @@ const doLike = async (id: number, token: string = "") => {
 
 const likeMemo = async (id: number) => {
   showToolbar.value = false;
-  const likes = JSON.parse(
-    localStorage.getItem("likeMemos") || "[]"
-  ) as Array<number>;
+  const likes = getLikedMemos();
   if (likes.includes(id)) {
     toast.warning("您已经点赞过了!");
     return;
@@ -431,9 +438,7 @@ const likeMemo = async (id: number) => {
 };
 
 onMounted(() => {
-  const likes = JSON.parse(
-    localStorage.getItem("likeMemos") || "[]"
-  ) as Array<number>;
+  const likes = getLikedMemos();
   liked.value = likes.findIndex((r) => r === item.value.id) >= 0;
   if (!isDetailPage.value) {
     setTimeout(() => {

@@ -16,9 +16,13 @@
 const props = defineProps<{ url: string }>()
 
 const videoUrl = computed(() => {
-  const url = new URL(props.url)
-  url.searchParams.set("autoplay", "0")
-  return url.toString()
+  try {
+    const url = new URL(props.url)
+    url.searchParams.set("autoplay", "0")
+    return url.toString()
+  } catch {
+    return ""
+  }
 })
 </script>
 

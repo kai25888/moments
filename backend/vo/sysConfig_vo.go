@@ -15,6 +15,11 @@ type SysConfigVO struct {
 	EnableAutoLoadNextPage bool   `json:"enableAutoLoadNextPage"`     //是否启用自动加载下一页
 	Favicon                string `json:"favicon,omitempty"`          //favicon
 	Title                  string `json:"title,omitempty"`            //标题
+	SiteDescription        string `json:"siteDescription,omitempty"`  //站点描述
+	Announcement           string `json:"announcement,omitempty"`     //公告文案
+	HeroTitle              string `json:"heroTitle,omitempty"`        //首页主标题
+	HeroSubtitle           string `json:"heroSubtitle,omitempty"`     //首页副标题
+	FooterSignature        string `json:"footerSignature,omitempty"`  //页脚签名
 	BeiAnNo                string `json:"beiAnNo,omitempty"`          //备案号码
 	Css                    string `json:"css,omitempty"`              //自定义css
 	Js                     string `json:"js,omitempty"`               //自定义js
@@ -38,6 +43,11 @@ type FullSysConfigVO struct {
 	EnableAutoLoadNextPage bool   `json:"enableAutoLoadNextPage"`     //是否启用自动加载下一页
 	Favicon                string `json:"favicon,omitempty"`          //favicon
 	Title                  string `json:"title,omitempty"`            //标题
+	SiteDescription        string `json:"siteDescription,omitempty"`  //站点描述
+	Announcement           string `json:"announcement,omitempty"`     //公告文案
+	HeroTitle              string `json:"heroTitle,omitempty"`        //首页主标题
+	HeroSubtitle           string `json:"heroSubtitle,omitempty"`     //首页副标题
+	FooterSignature        string `json:"footerSignature,omitempty"`  //页脚签名
 	BeiAnNo                string `json:"beiAnNo,omitempty"`          //备案号码
 	Css                    string `json:"css,omitempty"`              //自定义css
 	Js                     string `json:"js,omitempty"`               //自定义js

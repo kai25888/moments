@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -39,7 +40,9 @@ type MemoHandler struct {
 func NewMemoHandler(injector do.Injector) *MemoHandler {
 	return &MemoHandler{
 		base: do.MustInvoke[BaseHandler](injector),
-		hc:   http.Client{},
+		hc: http.Client{
+			Timeout: 8 * time.Second,
+		},
 	}
 }
 
@@ -172,10 +175,33 @@ func (m MemoHandler) ListMemos(c echo.Context) error {
 	tx.Session(&gorm.Session{}).Order("pinned desc, createdAt desc").Limit(req.Size).Offset(offset).Find(&list)
 	tx.Session(&gorm.Session{}).Count(&total)
 
-	for i, memo := range list {
-		var comments []db.Comment
-		m.base.db.Where("memoId = ?", memo.Id).Order(fmt.Sprintf("createdAt %s", sysConfigVO.CommentOrder)).Limit(5).Find(&comments)
-		list[i].Comments = comments
+	commentOrder := strings.ToUpper(sysConfigVO.CommentOrder)
+	if commentOrder != "ASC" {
+		commentOrder = "DESC"
+	}
+	if len(list) > 0 {
+		memoIDs := make([]int32, 0, len(list))
+		for _, memo := range list {
+			memoIDs = append(memoIDs, memo.Id)
+		}
+
+		var allComments []db.Comment
+		m.base.db.
+			Where("memoId IN ?", memoIDs).
+			Order(fmt.Sprintf("memoId ASC, createdAt %s", commentOrder)).
+			Find(&allComments)
+
+		commentMap := make(map[int32][]db.Comment, len(memoIDs))
+		for _, comment := range allComments {
+			if len(commentMap[comment.MemoId]) >= 5 {
+				continue
+			}
+			commentMap[comment.MemoId] = append(commentMap[comment.MemoId], comment)
+		}
+
+		for i := range list {
+			list[i].Comments = commentMap[list[i].Id]
+		}
 	}
 
 	for i := range list {
@@ -373,7 +399,10 @@ func (m MemoHandler) SaveMemo(c echo.Context) error {
 		*memo.CreatedAt = req.CreatedAt.Local()
 	}
 
-	m.base.db.Save(&memo)
+	if err = m.base.db.Save(&memo).Error; err != nil {
+		m.base.log.Error().Msgf("保存memo异常:%s", err.Error())
+		return FailRespWithMsg(c, Fail, "保存失败")
+	}
 
 	return SuccessResp(c, h{})
 }
@@ -398,6 +427,7 @@ func (m MemoHandler) GetMemo(c echo.Context) error {
 	currentUser := ctx.CurrentUser()
 
 	m.base.db.First(&sysConfig)
+	_ = json.Unmarshal([]byte(sysConfig.Content), &sysConfigVO)
 
 	id, err := strconv.Atoi(c.QueryParam("id"))
 	if err != nil {
@@ -412,7 +442,11 @@ func (m MemoHandler) GetMemo(c echo.Context) error {
 		return FailResp(c, ParamError)
 	}
 
-	if *memo.ShowType != 1 && (currentUser == nil || currentUser.Id != memo.UserId) {
+	showType := int32(1)
+	if memo.ShowType != nil {
+		showType = *memo.ShowType
+	}
+	if showType != 1 && (currentUser == nil || currentUser.Id != memo.UserId) {
 		return FailRespWithMsg(c, Fail, "暂无权限查看")
 	}
 
@@ -459,7 +493,10 @@ func (m MemoHandler) SetPinned(c echo.Context) error {
 	}
 
 	m.base.db.Table("Memo").Where("pinned = true").Update("pinned", false)
-	pinned := *memo.Pinned
+	pinned := false
+	if memo.Pinned != nil {
+		pinned = *memo.Pinned
+	}
 	if err = m.base.db.Table("Memo").Where("id=?", id).Update("pinned", !pinned).Error; err != nil {
 		return FailRespWithMsg(c, Fail, err.Error())
 	}
@@ -496,22 +533,32 @@ func (m MemoHandler) GetFaviconAndTitle(c echo.Context) error {
 // getFaviconAndTitle tries to get the favicon URL and title from the given website URL.
 func getFaviconAndTitle(websiteURL string) (string, string, error) {
 	// Parse the provided URL to extract the domain
-	parsedURL, err := url.Parse(websiteURL)
+	parsedURL, err := validateExternalURL(websiteURL)
 	if err != nil {
 		return "", "", err
+	}
+	client := &http.Client{
+		Timeout: 8 * time.Second,
 	}
 
 	// Construct the base URL
 	baseURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
 
 	// Parse the HTML to find <link rel="icon"> or <link rel="shortcut icon"> and the <title>
-	resp, err := http.Get(websiteURL)
+	req, err := http.NewRequest(http.MethodGet, parsedURL.String(), nil)
+	if err != nil {
+		return "", "", err
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", "", err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", "", fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	}
 
-	doc, err := html.Parse(resp.Body)
+	doc, err := html.Parse(io.LimitReader(resp.Body, 2<<20))
 	if err != nil {
 		return "", "", err
 	}
@@ -555,7 +602,15 @@ func getFaviconAndTitle(websiteURL string) (string, string, error) {
 	} else {
 		// Try to get the favicon from /favicon.ico
 		faviconURL := baseURL + "/favicon.ico"
-		resp, err := http.Get(faviconURL)
+		faviconParsedURL, err := validateExternalURL(faviconURL)
+		if err != nil {
+			return "", "", err
+		}
+		req, err := http.NewRequest(http.MethodGet, faviconParsedURL.String(), nil)
+		if err != nil {
+			return "", "", err
+		}
+		resp, err := client.Do(req)
 		if err == nil && resp.StatusCode == http.StatusOK {
 			favicon = faviconURL
 			resp.Body.Close()
@@ -565,6 +620,63 @@ func getFaviconAndTitle(websiteURL string) (string, string, error) {
 	}
 
 	return favicon, title, nil
+}
+
+func validateExternalURL(rawURL string) (*url.URL, error) {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return nil, fmt.Errorf("unsupported scheme")
+	}
+	if parsedURL.Host == "" {
+		return nil, fmt.Errorf("missing host")
+	}
+
+	host := parsedURL.Hostname()
+	if host == "" {
+		return nil, fmt.Errorf("missing hostname")
+	}
+	if isUnsafeHost(host) {
+		return nil, fmt.Errorf("unsafe host")
+	}
+
+	resolverCtx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	ips, err := net.DefaultResolver.LookupIPAddr(resolverCtx, host)
+	if err != nil {
+		return nil, err
+	}
+	if len(ips) == 0 {
+		return nil, fmt.Errorf("host resolve failed")
+	}
+	for _, ip := range ips {
+		if isUnsafeIP(ip.IP) {
+			return nil, fmt.Errorf("unsafe host")
+		}
+	}
+
+	return parsedURL, nil
+}
+
+func isUnsafeHost(host string) bool {
+	switch strings.ToLower(host) {
+	case "localhost", "0.0.0.0":
+		return true
+	}
+	return false
+}
+
+func isUnsafeIP(ip net.IP) bool {
+	if ip == nil {
+		return true
+	}
+	if ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalMulticast() || ip.IsLinkLocalUnicast() || ip.IsMulticast() || ip.IsUnspecified() {
+		return true
+	}
+	return false
 }
 
 // GetDoubanMovieInfo godoc

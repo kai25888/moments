@@ -275,7 +275,7 @@ func getContentWithExt(memo db.Memo, host string) string {
 			title = "Youtube视频"
 		}
 		url = ext.Video.Value
-		if ext.Video.Type == "online" && url[:7] == "/upload" {
+	if ext.Video.Type == "online" && strings.HasPrefix(url, "/upload") {
 			url = host + url
 		}
 		content += fmt.Sprintf("\n\n[%s](%s)", title, url)

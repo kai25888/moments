@@ -5,11 +5,30 @@
       <div v-if="version" class="w-32">版本号: {{ version }}</div>
       <div v-if="commitId" class="w-32">commitId: {{ commitId }}</div>
     </div>
+    <div class="rounded-2xl border border-emerald-200/70 bg-emerald-50/70 p-4 text-sm text-emerald-900 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-100">
+      这一页现在支持直接配置首页品牌文案。适合做轻量二开，不需要额外改数据库结构。
+    </div>
+    <div class="space-y-1">
+      <div class="text-sm font-semibold text-gray-900 dark:text-white">品牌基础</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400">站点标题、描述、首页主视觉文案都会影响访客第一眼感受。</div>
+    </div>
     <UFormGroup label="管理员账号" name="adminUserName" :ui="{label:{base:'font-bold'}}">
       <UInput v-model="state.adminUserName"/>
     </UFormGroup>
     <UFormGroup label="网站标题" name="title" :ui="{label:{base:'font-bold'}}">
       <UInput v-model="state.title"/>
+    </UFormGroup>
+    <UFormGroup label="站点描述" name="siteDescription" :ui="{label:{base:'font-bold'}}">
+      <UTextarea v-model="state.siteDescription" :rows="2" placeholder="一句话介绍你的站点定位、写作主题或社区气质"/>
+    </UFormGroup>
+    <UFormGroup label="首页主标题" name="heroTitle" :ui="{label:{base:'font-bold'}}">
+      <UInput v-model="state.heroTitle" placeholder="例如：记录那些值得停留的瞬间"/>
+    </UFormGroup>
+    <UFormGroup label="首页副标题" name="heroSubtitle" :ui="{label:{base:'font-bold'}}">
+      <UTextarea v-model="state.heroSubtitle" :rows="2" placeholder="补充说明站点内容方向、更新节奏或品牌态度"/>
+    </UFormGroup>
+    <UFormGroup label="顶部公告" name="announcement" :ui="{label:{base:'font-bold'}}">
+      <UTextarea v-model="state.announcement" :rows="2" placeholder="可填写近期活动、欢迎语或站点提示"/>
     </UFormGroup>
     <UFormGroup label="Favicon" name="favicon"
                 :ui="{label:{base:'font-bold'}}">
@@ -18,6 +37,13 @@
       <UInput v-model="state.favicon" class="mb-2"/>
       <UAvatar :src="state.favicon"/>
     </UFormGroup>
+    <UFormGroup label="页脚签名" name="footerSignature" :ui="{label:{base:'font-bold'}}">
+      <UInput v-model="state.footerSignature" placeholder="例如：用慢一点的节奏，写下真实的生活"/>
+    </UFormGroup>
+    <div class="space-y-1 pt-2">
+      <div class="text-sm font-semibold text-gray-900 dark:text-white">站点行为</div>
+      <div class="text-xs text-gray-500 dark:text-gray-400">这里控制首页加载、评论、注册和展示细节。</div>
+    </div>
     <UFormGroup label="首页是否自动加载下一页" name="enableAutoLoadNextPage" :ui="{label:{base:'font-bold'}}">
       <UToggle v-model="state.enableAutoLoadNextPage"/>
     </UFormGroup>
@@ -33,8 +59,8 @@
     <UFormGroup label="自定义CSS" name="css" :ui="{label:{base:'font-bold'}}">
       <UTextarea v-model="state.css" :rows="5"/>
     </UFormGroup>
-    <UFormGroup label="自定义JS" name="js" :ui="{label:{base:'font-bold'}}">
-      <UTextarea v-model="state.js" :rows="5"/>
+    <UFormGroup label="自定义JS（出于安全考虑已停用前台注入）" name="js" :ui="{label:{base:'font-bold'}}">
+      <UTextarea v-model="state.js" :rows="5" disabled placeholder="该字段保留历史兼容，但不会再自动注入到前台页面"/>
     </UFormGroup>
     <UFormGroup label="自定义RSS" name="rss" :ui="{label:{base:'font-bold'}}">
       <UTextarea v-model="state.rss" :rows="1"  placeholder="留空使用默认配置"/>
@@ -153,6 +179,11 @@ const state = reactive({
   adminUserName: "admin",
   title: "极简朋友圈",
   favicon: "/favicon.ico",
+  siteDescription: "把日常、思考和收藏都安静地放进时间线里。",
+  announcement: "欢迎来到这个被认真整理过的小站，愿你也能在这里找到想停留的片刻。",
+  heroTitle: "记录那些值得停留的瞬间",
+  heroSubtitle: "这里保留日常、灵感与生活切片，用更轻的界面承载更完整的表达。",
+  footerSignature: "慢慢写，慢慢看，慢慢生活。",
   beiAnNo: "",
   css: "",
   js: "",

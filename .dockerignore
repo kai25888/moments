@@ -1,0 +1,12 @@
+.git
+.DS_Store
+
+front/node_modules
+front/.nuxt
+front/.output
+front/dist
+
+backend/dist
+backend/public
+backend/upload
+backend/db.sqlite

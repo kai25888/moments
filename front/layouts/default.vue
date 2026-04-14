@@ -1,9 +1,12 @@
 <template>
-  <div
-    class="w-full md:w-[567px] mx-auto h-full shadow-2xl dark:bg-neutral-900"
-  >
-    <slot />
-    <Footer />
+  <div class="min-h-screen bg-[#f4efe7] px-0 py-0 text-slate-900 transition-colors dark:bg-[#111111] dark:text-slate-100">
+    <div class="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_top,_rgba(214,190,153,0.28),_transparent_38%),radial-gradient(circle_at_bottom,_rgba(159,200,74,0.12),_transparent_30%)] dark:bg-[radial-gradient(circle_at_top,_rgba(159,200,74,0.16),_transparent_35%),radial-gradient(circle_at_bottom,_rgba(255,255,255,0.05),_transparent_30%)]"></div>
+    <div
+      class="relative w-full md:w-[567px] mx-auto min-h-screen border-x border-black/5 bg-white/90 shadow-[0_25px_80px_rgba(15,23,42,0.08)] backdrop-blur dark:border-white/10 dark:bg-neutral-900/90"
+    >
+      <slot />
+      <Footer />
+    </div>
   </div>
 
   <div
@@ -71,13 +74,22 @@ const currentUser = useState<UserVO>("userinfo");
 const sysConfig = useState<SysConfigVO>("sysConfig");
 const currentProfile = await useMyFetch<UserVO>("/user/profile");
 const sysConfigVO = await useMyFetch<SysConfigVO>("/sysConfig/get");
+sysConfig.value = sysConfigVO;
 if (currentProfile) {
   currentUser.value = currentProfile;
-  sysConfig.value = sysConfigVO;
 }
 const { y } = useWindowScroll();
 useHead({
   title: sysConfigVO.title,
+  meta: [
+    {
+      name: "description",
+      content:
+        sysConfigVO.siteDescription ||
+        sysConfigVO.heroSubtitle ||
+        `${sysConfigVO.title} 的轻量时间流`,
+    },
+  ],
   link: [
     {
       rel: "shortcut icon",
@@ -95,20 +107,17 @@ useHead({
       href: sysConfigVO.rss || `/rss`,
     },
   ],
+  bodyAttrs: {
+    class: "bg-[#f4efe7] dark:bg-[#111111]",
+  },
   style: [
     {
       innerHTML: sysConfigVO.css || "",
     },
   ],
-  script: [
-    {
-      type: "text/javascript",
-      innerHTML: sysConfigVO.js || "",
-    },
-  ],
 });
 
-if (sysConfigVO.enableGoogleRecaptcha) {
+if (sysConfigVO.enableGoogleRecaptcha && sysConfigVO.googleSiteKey) {
   useHead({
     script: [
       {

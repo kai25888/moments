@@ -6,7 +6,7 @@ COPY front/pnpm-lock.yaml .
 COPY front/pnpm-workspace.yaml .
 RUN pnpm install
 COPY front/. .
-RUN pnpm run generate
+RUN pnpm run build
 
 FROM golang:1.23.3-alpine AS backend
 ARG VERSION

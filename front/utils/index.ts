@@ -6,10 +6,11 @@ import markdownit from "markdown-it"
 import { fromHighlighter } from "@shikijs/markdown-it/core"
 import { createHighlighterCore } from "shiki/core"
 
-const global = useGlobalState()
+const getGlobalState = () => useGlobalState()
 
 export const useMyFetch = async <T>(url: string, data?: any) => {
   const headers: Record<string, string> = {}
+  const global = getGlobalState()
 
   const userinfo = global.value.userinfo
   if (userinfo.token) {
@@ -78,6 +79,10 @@ const upload2S3WithProgress = async (
     const xhr = new XMLHttpRequest()
 
     xhr.addEventListener("load", () => {
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(`File upload failed with status ${xhr.status}`))
+        return
+      }
       resolve()
     })
     xhr.addEventListener("error", () => reject(new Error("File upload failed")))
@@ -98,11 +103,12 @@ const upload2S3 = async (
 
   for (let i = 0; i < files.length; i++) {
     try {
+      const file = files[i]
       const res = await useMyFetch<{
         preSignedUrl: string
         imageUrl: string
       }>("/file/s3PreSigned", {
-        contentType: files[0].type,
+        contentType: file.type,
       })
 
       if (!res || !res.preSignedUrl) {
@@ -110,7 +116,6 @@ const upload2S3 = async (
         continue
       }
 
-      const file = files[i]
       await upload2S3WithProgress(res.preSignedUrl, file, progress => {
         if (onProgress) {
           onProgress(files.length, i + 1, file.name, progress)
@@ -134,7 +139,18 @@ const uploadFile2ServerWithProgress = (
     const xhr = new XMLHttpRequest()
 
     xhr.addEventListener("load", () => {
-      const res = JSON.parse(xhr.responseText)
+      if (xhr.status < 200 || xhr.status >= 300) {
+        reject(new Error(`File upload failed with status ${xhr.status}`))
+        return
+      }
+
+      let res
+      try {
+        res = JSON.parse(xhr.responseText)
+      } catch {
+        reject(new Error("Invalid upload response"))
+        return
+      }
       if (!res || res.code !== 0) {
         return reject(new Error(`${res?.message || "请求失败"}`))
       }
@@ -149,6 +165,7 @@ const uploadFile2ServerWithProgress = (
 
     xhr.open("POST", url, true)
 
+    const global = getGlobalState()
     const userinfo = global.value.userinfo
     if (userinfo.token) {
       xhr.setRequestHeader("x-api-token", userinfo.token)
@@ -228,7 +245,7 @@ export const useUpload = async (
 }
 
 export const md = markdownit({
-  html: true,
+  html: false,
   linkify: true,
   typographer: true,
   breaks: true,
