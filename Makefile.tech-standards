@@ -1,0 +1,65 @@
+# Tech Standards Branch Makefile
+# 为 tech-standards/main 分支定制的构建脚本
+
+.PHONY: build push run stop logs clean shell
+
+# 镜像配置
+IMAGE_NAME := kai25888/moments
+IMAGE_TAG := tech-standards
+CONTAINER_NAME := moments-tech-standards
+
+# 构建镜像
+build:
+	docker build \
+		-f Dockerfile.tech-standards \
+		-t $(IMAGE_NAME):$(IMAGE_TAG) \
+		-t $(IMAGE_NAME):$(IMAGE_TAG)-$(shell date +%Y%m%d) \
+		--build-arg VERSION=tech-standards \
+		--build-arg COMMIT_ID=$(shell git rev-parse --short HEAD) \
+		--build-arg BRANCH=tech-standards/main \
+		.
+
+# 推送镜像到仓库
+push: build
+	docker push $(IMAGE_NAME):$(IMAGE_TAG)
+	docker push $(IMAGE_NAME):$(IMAGE_TAG)-$(shell date +%Y%m%d)
+
+# 启动服务
+run:
+	docker-compose -f docker-compose.tech-standards.yml up -d
+
+# 停止服务
+stop:
+	docker-compose -f docker-compose.tech-standards.yml down
+
+# 查看日志
+logs:
+	docker-compose -f docker-compose.tech-standards.yml logs -f
+
+# 清理容器和镜像
+clean: stop
+	docker rm -f $(CONTAINER_NAME) 2>/dev/null || true
+	docker rmi $(IMAGE_NAME):$(IMAGE_TAG) 2>/dev/null || true
+
+# 进入容器
+shell:
+	docker exec -it $(CONTAINER_NAME) /bin/sh
+
+# 查看技术规范文档
+docs:
+	@echo "技术规范文档位置:"
+	@echo "  - /app/docs/TECH_IMPROVEMENT_PLAN.md"
+	@echo "  - /app/docs/CODING_STANDARDS.md"
+	@echo "  - /app/docs/CODE_REVIEW_CHECKLIST.md"
+	@echo "  - /app/docs/QUICK_START.md"
+	@echo ""
+	@echo "重构示例代码位置:"
+	@echo "  - /app/examples/"
+
+# 一键构建并启动
+up: build run
+	@echo "Tech Standards 服务已启动"
+	@echo "访问地址: http://localhost:3001"
+	@echo ""
+	@echo "查看文档:"
+	@echo "  docker exec $(CONTAINER_NAME) cat /app/docs/QUICK_START.md"

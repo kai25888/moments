@@ -1,0 +1,38 @@
+# Tech Standards Branch Docker Compose
+# 为 tech-standards/main 分支定制的 Docker Compose 配置
+
+services:
+  moments-tech-standards:
+    build:
+      context: .
+      dockerfile: Dockerfile.tech-standards
+      args:
+        VERSION: ${VERSION:-tech-standards}
+        COMMIT_ID: ${COMMIT_ID:-local}
+        BRANCH: tech-standards/main
+    image: kai25888/moments:tech-standards
+    container_name: moments-tech-standards
+    restart: always
+    environment:
+      PORT: 3000
+      JWT_KEY: ${JWT_KEY:-your-secret-key}
+      TZ: Asia/Shanghai
+      TECH_STANDARDS_VERSION: "1.0.0"
+    ports:
+      - "3001:3000"  # 使用 3001 端口避免与主服务冲突
+    volumes:
+      - /var/moments-tech-standards:/app/data  # 独立的数据目录
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "tech-standards.version=1.0.0"
+      - "tech-standards.branch=tech-standards/main"
+      - "tech-standards.description=Moments with Tech Standards Documentation"
+
+networks:
+  default:
+    name: moments-tech-standards-network
