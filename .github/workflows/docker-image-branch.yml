@@ -1,4 +1,4 @@
-name: Build And Upload Image For Branch
+name: Build And Upload Image For Moments Plus Branch
 
 on:
   push:
@@ -28,9 +28,9 @@ jobs:
 
       - name: Prepare image metadata
         run: |
-          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/moments" >> $GITHUB_ENV
-          echo "IMAGE_TAG=moments-plus-main" >> $GITHUB_ENV
-          echo "VERSION=moments-plus-main" >> $GITHUB_ENV
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/moments-plus" >> $GITHUB_ENV
+          echo "IMAGE_TAG=latest" >> $GITHUB_ENV
+          echo "VERSION=main" >> $GITHUB_ENV
           echo "COMMIT_ID=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
 
       - name: Login to GHCR
