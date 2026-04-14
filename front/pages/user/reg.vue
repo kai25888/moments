@@ -81,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import type { SysConfigVO, UserVO } from "~/types";
+import type { UserVO } from "~/types";
 import { toast } from "vue-sonner";
 
 definePageMeta({
@@ -96,13 +96,6 @@ const state = reactive({
 
 const pending = ref(false);
 const currentUser = useState<UserVO>('userinfo');
-const sysConfig = useState<SysConfigVO>('sysConfig');
-
-onMounted(async () => {
-  if (!sysConfig.value?.enableRegister) {
-    await navigateTo('/');
-  }
-});
 
 const doReg = async () => {
   // 表单验证

@@ -56,13 +56,11 @@
         <div class="mt-6 text-center">
           <span class="text-gray-500">还没有账号？</span>
           <NuxtLink
-            v-if="sysConfig.enableRegister"
             to="/user/reg"
             class="ml-1 text-purple-600 hover:text-purple-700 font-medium transition-colors"
           >
             立即注册
           </NuxtLink>
-          <span v-else class="ml-1 text-gray-400">暂不开放注册</span>
         </div>
       </div>
     </div>
