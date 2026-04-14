@@ -29,10 +29,8 @@ jobs:
       - name: Prepare image metadata
         run: |
           VERSION=${GITHUB_REF#refs/tags/moments-plus/}
-          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/moments" >> $GITHUB_ENV
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/moments-plus" >> $GITHUB_ENV
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          echo "VERSION_TAG=moments-plus-${VERSION}" >> $GITHUB_ENV
-          echo "LATEST_TAG=moments-plus-latest" >> $GITHUB_ENV
           echo "COMMIT_ID=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
 
       - name: Login to GHCR
@@ -52,8 +50,7 @@ jobs:
             linux/arm64
             linux/arm/v7
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ env.VERSION_TAG }}
-            ${{ env.IMAGE_NAME }}:${{ env.LATEST_TAG }}
+            ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
             ${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}
           build-args: |
             VERSION=${{ env.VERSION }}
