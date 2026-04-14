@@ -13,19 +13,25 @@ type BizError = int
 type h = map[string]any
 
 const (
-	SUCCESS      BizError = 0
-	Fail         BizError = 1
-	ParamError   BizError = 2
-	TokenInvalid BizError = 3
-	TokenMissing BizError = 4
+	SUCCESS       BizError = 0
+	Fail          BizError = 1
+	ParamError    BizError = 2
+	TokenInvalid  BizError = 3
+	TokenMissing  BizError = 4
+	NotFound      BizError = 404
+	Forbidden     BizError = 403
+	InternalError BizError = 500
 )
 
 var errorMessageMap = map[BizError]string{
-	SUCCESS:      "成功",
-	Fail:         "失败",
-	ParamError:   "参数错误",
-	TokenInvalid: "Token无效",
-	TokenMissing: "Token缺失",
+	SUCCESS:       "成功",
+	Fail:          "失败",
+	ParamError:    "参数错误",
+	TokenInvalid:  "Token无效",
+	TokenMissing:  "Token缺失",
+	NotFound:      "资源不存在",
+	Forbidden:     "没有权限",
+	InternalError: "服务器内部错误",
 }
 
 type BaseHandler struct {
