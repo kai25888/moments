@@ -324,8 +324,13 @@ const currentCommentBox = useState("currentCommentBox");
 const props = defineProps<{
   memo: MemoVO;
 }>();
-const extJSON = computed(() => {
-  return JSON.parse(props.memo.ext || "{}") as ExtDTO;
+const extJSON = computed<ExtDTO>(() => {
+  try {
+    return JSON.parse(props.memo.ext || "{}") as ExtDTO;
+  } catch (error) {
+    console.error("Failed to parse ext JSON:", error, "Raw value:", props.memo.ext);
+    return {} as ExtDTO;
+  }
 });
 const item = computed(() => {
   return props.memo;

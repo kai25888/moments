@@ -137,7 +137,10 @@ func (m MemoHandler) ListMemos(c echo.Context) error {
 		tx = tx.Where("createdAt <= ?", req.End)
 	}
 	if req.ContentContains != "" {
-		tx = tx.Where("content like ?", "%"+req.ContentContains+"%")
+		if len(req.ContentContains) > 100 {
+			return FailRespWithMsg(c, ParamError, "搜索内容过长，最多100个字符")
+		}
+		tx = tx.Where("content LIKE ?", "%"+req.ContentContains+"%")
 	}
 	if req.ShowType != nil && *req.ShowType >= 0 {
 		tx = tx.Where("showType=?", req.ShowType)
@@ -209,15 +212,20 @@ func (m MemoHandler) RemoveMemo(c echo.Context) error {
 	var (
 		memo db.Memo
 	)
-	if err = m.base.db.First(&memo, id).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-		return FailResp(c, ParamError)
+	if err = m.base.db.First(&memo, id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return FailRespWithMsg(c, NotFound, "memo不存在")
+		}
+		m.base.log.Error().Err(err).Int("memo_id", id).Msg("查询memo失败")
+		return FailResp(c, InternalError)
 	}
 
 	if currentUser.Id != memo.UserId && currentUser.Id != 1 {
-		return FailRespWithMsg(c, Fail, "没有权限")
+		return FailRespWithMsg(c, Forbidden, "没有权限删除此memo")
 	}
-	if m.base.db.Delete(&memo).RowsAffected != 1 {
-		return FailRespWithMsg(c, Fail, "删除失败")
+	if err = m.base.db.Delete(&memo).Error; err != nil {
+		m.base.log.Error().Err(err).Int("memo_id", id).Msg("删除memo失败")
+		return FailRespWithMsg(c, InternalError, "删除失败")
 	}
 
 	return SuccessResp(c, h{})
@@ -329,11 +337,15 @@ func (m MemoHandler) SaveMemo(c echo.Context) error {
 	currentUser := ctx.CurrentUser()
 
 	if req.ID > 0 {
-		if err = m.base.db.First(&memo, req.ID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
-			return FailResp(c, ParamError)
+		if err = m.base.db.First(&memo, req.ID).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return FailRespWithMsg(c, NotFound, "memo不存在")
+			}
+			m.base.log.Error().Err(err).Int("memo_id", req.ID).Msg("查询memo失败")
+			return FailResp(c, InternalError)
 		}
 		if memo.UserId != currentUser.Id {
-			return FailResp(c, ParamError)
+			return FailRespWithMsg(c, Forbidden, "无权修改此memo")
 		}
 		memo.UpdatedAt = &now
 	} else {
