@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -36,16 +36,12 @@ jobs:
 
       - name: Extract Version
         run: |
+          echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/tech-standards" >> $GITHUB_ENV
           if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            # 如果是 tag 触发，使用 tag 名称作为版本（将 / 替换为 -）
-            TAG_NAME=${GITHUB_REF#refs/tags/}
-            SAFE_TAG=$(echo "${TAG_NAME}" | sed 's/\//-/g')
-            echo "VERSION_TAG=${SAFE_TAG}" >> $GITHUB_ENV
-            echo "VERSION=${SAFE_TAG}" >> $GITHUB_ENV
+            TAG_NAME=${GITHUB_REF#refs/tags/tech-standards/}
+            echo "VERSION=${TAG_NAME}" >> $GITHUB_ENV
           else
-            # 如果是分支触发，使用分支名+日期+commit
-            echo "VERSION_TAG=tech-standards" >> $GITHUB_ENV
-            echo "VERSION=tech-standards-$(date +%Y%m%d)-${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+            echo "VERSION=latest" >> $GITHUB_ENV
           fi
           echo "COMMIT_ID=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
           echo "BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> $GITHUB_ENV
@@ -60,8 +56,8 @@ jobs:
             linux/amd64
             linux/arm64
           tags: |
-            ghcr.io/${{ github.repository_owner }}/moments:${{ env.VERSION_TAG }}
-            ghcr.io/${{ github.repository_owner }}/moments:${{ env.VERSION }}
+            ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+            ${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}
           build-args: |
             VERSION=${{ env.VERSION }}
             COMMIT_ID=${{ env.COMMIT_ID }}
@@ -72,17 +68,16 @@ jobs:
       - name: Verify Image Tags
         run: |
           echo "✅ Image built and pushed with tags:"
-          echo "  - ghcr.io/${{ github.repository_owner }}/moments:tech-standards"
-          echo "  - ghcr.io/${{ github.repository_owner }}/moments:${{ env.VERSION }}"
+          echo "  - ${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
+          echo "  - ${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}"
 
       - name: Image Summary
         run: |
           echo "✅ Image built successfully!"
           echo ""
           echo "📦 Image Tags:"
-          echo "  - ghcr.io/${{ github.repository_owner }}/moments:tech-standards"
-          echo "  - ghcr.io/${{ github.repository_owner }}/moments:${{ env.VERSION }}"
+          echo "  - ${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
+          echo "  - ${{ env.IMAGE_NAME }}:${{ env.COMMIT_ID }}"
           echo ""
           echo "🚀 To pull and run:"
-          echo "  docker pull ghcr.io/${{ github.repository_owner }}/moments:tech-standards"
-          echo "  docker run -p 3001:3001 ghcr.io/${{ github.repository_owner }}/moments:tech-standards"
+          echo "  docker pull ${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
