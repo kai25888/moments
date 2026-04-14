@@ -3,7 +3,7 @@ name: Build And Upload Image For Branch
 on:
   push:
     branches:
-      - feature/nas-dev
+      - moments-plus/main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,8 +29,8 @@ jobs:
       - name: Prepare image metadata
         run: |
           echo "IMAGE_NAME=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/moments" >> $GITHUB_ENV
-          echo "IMAGE_TAG=feature-nas-dev" >> $GITHUB_ENV
-          echo "VERSION=feature-nas-dev" >> $GITHUB_ENV
+          echo "IMAGE_TAG=moments-plus-main" >> $GITHUB_ENV
+          echo "VERSION=moments-plus-main" >> $GITHUB_ENV
           echo "COMMIT_ID=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
 
       - name: Login to GHCR
