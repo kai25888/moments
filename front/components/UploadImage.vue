@@ -32,10 +32,11 @@
 </template>
 
 <script setup lang="ts">
-import { useUpload } from "~/utils";
+import { useUpload, type UploadResultItem } from "~/utils";
 import { toast } from "vue-sonner";
 
 const imgs = defineModel<string>('imgs', { default: '' })
+const imgConfigs = defineModel<UploadResultItem[]>('imgConfigs', { default: () => [] })
 const progress = ref(0)
 const filename = ref('')
 const total = ref(0)
@@ -61,7 +62,9 @@ const upload = async (files: FileList) => {
   })
   if (result && result.length) {
     toast.success("上传成功")
-    imgs.value = [imgs.value, ...result].filter(Boolean).join(',')
+    const newUrls = result.map(r => r.url)
+    imgs.value = [imgs.value, ...newUrls].filter(Boolean).join(',')
+    imgConfigs.value = [...imgConfigs.value, ...result]
   }
 }
 
@@ -71,6 +74,7 @@ const addImg = () => {
   }
 
   imgs.value = [imgs.value, imgUrlToAdd.value].filter(Boolean).join(',')
+  imgConfigs.value = [...imgConfigs.value, { url: imgUrlToAdd.value, thumbUrl: imgUrlToAdd.value }]
   imgUrlToAdd.value = ''
 }
 
@@ -78,10 +82,14 @@ const removeImg = (index: number) => {
   const imgsArr = imgs.value.split(',').filter(Boolean)
   imgsArr.splice(index, 1)
   imgs.value = imgsArr.join(',')
+  const configs = [...imgConfigs.value]
+  configs.splice(index, 1)
+  imgConfigs.value = configs
 }
 
 const clear = (close: Function) => {
   imgs.value = ''
+  imgConfigs.value = []
   close()
 }
 </script>

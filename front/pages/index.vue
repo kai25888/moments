@@ -62,7 +62,19 @@
     <div>{{ hasNext ? "持续更新中" : "已加载全部内容" }}</div>
   </div>
 
-  <div class="flex flex-col divide-y divide-[#C0BEBF]/20 ">
+  <div v-if="loading" class="flex flex-col divide-y divide-[#C0BEBF]/20">
+    <div v-for="i in 5" :key="i" class="bg-white dark:bg-neutral-800 p-4">
+      <div class="flex gap-4">
+        <USkeleton class="w-10 h-10 rounded-full shrink-0" />
+        <div class="flex-1 space-y-2">
+          <USkeleton class="h-4 w-24" />
+          <USkeleton class="h-20 w-full" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-else class="flex flex-col divide-y divide-[#C0BEBF]/20 ">
     <Memo v-bind:memo="m" v-for="m in memos" :key="m.id" />
   </div>
   <div ref="loadMoreEle" class="px-4 py-5 text-center text-xs text-gray-500" v-if="hasNext">
@@ -93,6 +105,7 @@ watch(targetIsVisible, async (visible) => {
 })
 const hasNext = ref(false)
 const total = ref(0)
+const loading = ref(true)
 const state = reactive({
   page: 1,
   size: 5,
@@ -106,6 +119,7 @@ const heroAnnouncement = computed(() => sysConfig.value.announcement || '')
 
 onMounted(async () => {
   await reload()
+  loading.value = false
 })
 
 const reload = async () => {

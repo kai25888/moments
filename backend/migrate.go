@@ -176,6 +176,25 @@ WHERE
     (updatedAt NOT LIKE '%-%' AND length(updatedAt) = 13))`)
 }
 
+func migrateAddIndexes(tx *gorm.DB, log zerolog.Logger) {
+	indexes := []string{
+		`CREATE INDEX IF NOT EXISTS idx_memo_userId ON Memo(userId)`,
+		`CREATE INDEX IF NOT EXISTS idx_memo_createdAt ON Memo(createdAt)`,
+		`CREATE INDEX IF NOT EXISTS idx_memo_pinned ON Memo(pinned)`,
+		`CREATE INDEX IF NOT EXISTS idx_memo_showType ON Memo(showType)`,
+		`CREATE INDEX IF NOT EXISTS idx_memo_userId_createdAt ON Memo(userId, createdAt)`,
+		`CREATE INDEX IF NOT EXISTS idx_comment_memoId ON Comment(memoId)`,
+		`CREATE INDEX IF NOT EXISTS idx_comment_createdAt ON Comment(createdAt)`,
+		`CREATE INDEX IF NOT EXISTS idx_tag_userId ON Tag(userId)`,
+	}
+	for _, sql := range indexes {
+		if err := tx.Exec(sql).Error; err != nil {
+			log.Warn().Msgf("创建索引失败: %v", err)
+		}
+	}
+	log.Info().Msg("数据库索引创建完成")
+}
+
 func migrateIframeVideoUrl(tx *gorm.DB, log zerolog.Logger) {
 	var memos []db.Memo
 	tx.Find(&memos)

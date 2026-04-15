@@ -45,9 +45,15 @@ func NewFileHandler(injector do.Injector) *FileHandler {
 //	@Param		x-api-token	header	string	true	"登录TOKEN"
 //	@Success	200
 //	@Router		/api/file/upload [post]
+// UploadRespItem 上传接口返回的单个文件信息
+type UploadRespItem struct {
+	Url      string `json:"url"`
+	ThumbUrl string `json:"thumbUrl"`
+}
+
 func (f FileHandler) Upload(c echo.Context) error {
 	var (
-		result []string
+		result []UploadRespItem
 	)
 
 	form, err := c.MultipartForm()
@@ -63,67 +69,81 @@ func (f FileHandler) Upload(c echo.Context) error {
 
 	files := form.File["files"]
 	for _, file := range files {
-		savedPath, err := func(file *multipart.FileHeader) (string, error) {
+		item, err := func(file *multipart.FileHeader) (UploadRespItem, error) {
 			// 原始文件数据
 			reader, err := file.Open()
 			if err != nil {
-				return "", err
+				return UploadRespItem{}, err
 			}
 			defer reader.Close()
 
 			// 计算文件 hash
-			sha256, err := fs_util.Sha256(reader)
+			sha256Hash, err := fs_util.Sha256(reader)
 			if err != nil {
-				return "", err
+				return UploadRespItem{}, err
 			}
 
 			// 计算文件后缀
 			ext := filepath.Ext(file.Filename)
 
 			// 计算文件本地路径
-			filename := fmt.Sprintf("%s%s", sha256, ext)
+			filename := fmt.Sprintf("%s%s", sha256Hash, ext)
 			filePath := path.Join(f.base.cfg.UploadDir, filename)
 
-			// 如果文件存在，则跳过保存操作
+			isImage := SupportCompress(filename)
+
+			// 如果文件已存在，跳过保存；但仍需返回正确的 URL
 			if fs_util.Exists(filePath) {
-				return "/upload/" + filename, nil
+				url := "/upload/" + filename
+				thumbUrl := url
+				if isImage {
+					thumbUrl = GetBestThumbnailUrl(f.base.cfg.UploadDir, sha256Hash, url)
+				}
+				return UploadRespItem{Url: url, ThumbUrl: thumbUrl}, nil
 			}
 
 			// 创建原始文件
 			dst, err := os.Create(filePath)
 			if err != nil {
-				return "", err
+				return UploadRespItem{}, err
 			}
 			defer dst.Close()
 
 			// 重置文件指针到开头
 			if seeker, ok := reader.(io.Seeker); ok {
 				if _, err := seeker.Seek(0, io.SeekStart); err != nil {
-					return "", err
+					return UploadRespItem{}, err
 				}
 			}
 
 			// 保存文件数据
 			if _, err = io.Copy(dst, reader); err != nil {
-				return "", err
+				return UploadRespItem{}, err
 			}
 
-			// 生成并保存缩略图文件
-			if SupportCompress(filename) {
-				thumbFilename := fmt.Sprintf("%s_thumb%s", sha256, ext)
-				thumbFilepath := path.Join(f.base.cfg.UploadDir, thumbFilename)
-				if err := CompressImage(f, filePath, thumbFilepath, 50); err != nil {
-					f.base.log.Error().Msgf("压缩文件异常: %v", err)
-				}
+			url := "/upload/" + filename
+			thumbUrl := url
+
+			if isImage {
+				// Async generate multi-size WebP thumbnails. We return the original
+				// URL as thumbUrl now; handleImgConfigs() will resolve the real WebP
+				// thumbnail on the next list/get request once generation completes.
+				baseName := path.Join(f.base.cfg.UploadDir, sha256Hash)
+				log := f.base.log
+				go func(srcPath, baseName string) {
+					if _, err := GenerateAllThumbs(srcPath, baseName, log); err != nil {
+						log.Error().Msgf("生成 WebP 缩略图异常: %v", err)
+					}
+				}(filePath, baseName)
 			}
 
-			return "/upload/" + filename, nil
+			return UploadRespItem{Url: url, ThumbUrl: thumbUrl}, nil
 		}(file)
 		if err != nil {
 			f.base.log.Error().Msgf("处理上传文件异常: %v", err)
 			return FailRespWithMsg(c, Fail, "上传文件异常")
 		}
-		result = append(result, savedPath)
+		result = append(result, item)
 	}
 
 	return SuccessResp(c, result)
@@ -209,11 +229,17 @@ func (f FileHandler) Clean(c echo.Context) error {
 			if strings.HasPrefix(file, "/upload/") {
 				usedFiles = append(usedFiles, file)
 
-				// add thumb filename to used files
+				// add old-style _thumb filename to used files
 				ext := filepath.Ext(file)
 				filenameWithoutExt := strings.TrimSuffix(file, ext)
 				thumbFilename := fmt.Sprintf("%s_thumb%s", filenameWithoutExt, ext)
 				usedFiles = append(usedFiles, thumbFilename)
+
+				// add WebP multi-size thumbnails to used files
+				baseNoExt := strings.TrimSuffix(strings.TrimPrefix(file, "/upload/"), ext)
+				for _, width := range []int{ThumbSmall, ThumbMedium, ThumbLarge} {
+					usedFiles = append(usedFiles, fmt.Sprintf("/upload/%s_%dw.webp", baseNoExt, width))
+				}
 			}
 		}
 	}

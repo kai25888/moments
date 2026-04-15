@@ -39,7 +39,6 @@
       <div
         v-for="(imageConfig, z) in imageConfigs"
         :key="z"
-        :ref="(el) => setItemRef(el, z)"
         :href="imageConfig.url"
         :class="
           imageConfigs.length === 1
@@ -47,12 +46,12 @@
             : 'full-cover-image-mult'
         "
       >
-        <img
-          class="cursor-zoom-in rounded lazy-img"
-          :src="imageConfig.visibleSrc"
-          :onerror="imageConfig.visibleSrc ? `javascript:this.src='${imageConfig.url}';this.onerror=null` : undefined"
-          decoding="async"
-          @load="onImgLoad"
+        <ImageLazy
+          class="cursor-zoom-in rounded"
+          :src="imageConfig.url"
+          :thumb-src="imageConfig.thumbUrl"
+          :alt="'图片 ' + (z + 1)"
+          :aspect-ratio="imageConfigs.length === 1 ? undefined : '1/1'"
         />
       </div>
     </MyFancyBox>
@@ -61,16 +60,12 @@
 
 <script setup lang="ts">
 import { useSortable } from "@vueuse/integrations/useSortable";
-import { useIntersectionObserver } from "@vueuse/core";
+import ImageLazy from "~/components/ImageLazy.vue";
 
 interface ImgConfig {
-  id: number;
+  id?: number;
   url: string;
   thumbUrl: string;
-}
-
-interface ImgConfigWithSrc extends ImgConfig {
-  visibleSrc: string | undefined;
 }
 
 const route = useRoute();
@@ -78,44 +73,8 @@ const el = ref(null);
 const props = defineProps<{ imgs?: string; imgConfigs?: ImgConfig[] }>();
 const emit = defineEmits(["removeImage", "dragImage"]);
 
-const images = ref<ImgConfig[]>([]);
-const imageConfigs = ref<ImgConfigWithSrc[]>([]);
-
-// 每个图片容器的 DOM ref，用于 IntersectionObserver
-const itemRefs = ref<(Element | null)[]>([]);
-const observers: ReturnType<typeof useIntersectionObserver>[] = [];
-
-const setItemRef = (el: unknown, index: number) => {
-  if (el instanceof Element) {
-    itemRefs.value[index] = el;
-  }
-};
-
-const stopAllObservers = () => {
-  observers.forEach((obs) => obs.stop());
-  observers.length = 0;
-};
-
-const setupObservers = () => {
-  stopAllObservers();
-  nextTick(() => {
-    imageConfigs.value.forEach((config, index) => {
-      const target = itemRefs.value[index];
-      if (!target) return;
-      const obs = useIntersectionObserver(
-        target as HTMLElement,
-        ([entry]) => {
-          if (entry.isIntersecting && !config.visibleSrc) {
-            config.visibleSrc = config.thumbUrl;
-            obs.stop();
-          }
-        },
-        { rootMargin: "200px" }
-      );
-      observers.push(obs);
-    });
-  });
-};
+const images = ref<{ id: number; url: string; thumbUrl: string }[]>([]);
+const imageConfigs = ref<ImgConfig[]>([]);
 
 watchEffect(() => {
   images.value = (props.imgs || "")
@@ -125,13 +84,9 @@ watchEffect(() => {
 });
 
 watchEffect(() => {
-  itemRefs.value = [];
   imageConfigs.value = (props.imgConfigs || []).map((imgConfig) => ({
     ...imgConfig,
-    id: Math.random(),
-    visibleSrc: undefined,
   }));
-  setupObservers();
 });
 
 watchEffect(() => {
@@ -155,10 +110,6 @@ onMounted(() => {
       useSortable(el, images);
     }, 500);
   }
-});
-
-onBeforeUnmount(() => {
-  stopAllObservers();
 });
 
 const gridStyle = computed(() => {

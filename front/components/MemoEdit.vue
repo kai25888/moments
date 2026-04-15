@@ -12,7 +12,7 @@
       <ExternalUrl v-model:favicon="state.externalFavicon" v-model:title="state.externalTitle"
                    v-model:url="state.externalUrl"/>
 
-      <upload-image v-model:imgs="state.imgs"/>
+      <upload-image v-model:imgs="state.imgs" v-model:imgConfigs="state.imgConfigs"/>
       <music v-bind="state.music" @confirm="updateMusic"/>
       <upload-video @confirm="handleVideo" v-bind="state.video"/>
       <douban-edit v-model:type="doubanType" v-model:data="doubanData"/>
@@ -84,7 +84,7 @@
 
     <div class="flex flex-col gap-2">
       <external-url-preview :favicon="state.externalFavicon" :title="state.externalTitle" :url="state.externalUrl"/>
-      <upload-image-preview :imgs="state.imgs" @remove-image="handleRemoveImage" @drag-image="handleDragImage"/>
+      <upload-image-preview :imgs="state.imgs" :imgConfigs="state.imgConfigs" @remove-image="handleRemoveImage" @drag-image="handleDragImage"/>
       <music-preview v-if="state.music && state.music.id && state.music.type && state.music.server"
                      v-bind="state.music"/>
       <douban-book-preview :book="doubanData" v-if="doubanType === 'book' && doubanData&& doubanData.title"/>
@@ -115,6 +115,7 @@ import { youtubePosterUrl } from "~/utils/videoPoster";
 import UploadImage from "~/components/UploadImage.vue";
 import Emoji from "~/components/Emoji.vue";
 import dayjs from "dayjs";
+import type { UploadResultItem } from "~/utils";
 
 const doubanType = ref<'book' | 'movie'>('book')
 const doubanData = ref<DoubanBook | DoubanMovie>({})
@@ -132,6 +133,7 @@ const defaultState = {
   externalTitle: "",
   externalUrl: "",
   imgs: "",
+  imgConfigs: [] as UploadResultItem[],
   music: {
     id: '',
     api: 'https://api.i-meto.com/meting/api?server=:server&type=:type&id=:id&r=:r',
@@ -234,6 +236,9 @@ const handleRemoveImage = (index: number) => {
   const arr = state.imgs.split(",").filter(Boolean)
   arr.splice(index, 1)
   state.imgs = arr.join(",")
+  const configs = [...state.imgConfigs]
+  configs.splice(index, 1)
+  state.imgConfigs = configs
 }
 
 function onContextMenu() {

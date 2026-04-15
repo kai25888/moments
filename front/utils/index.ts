@@ -76,6 +76,11 @@ type OnTotalProgressCallback = (
   progress: number,
 ) => void
 
+export interface UploadResultItem {
+  url: string
+  thumbUrl: string
+}
+
 const upload2S3WithProgress = async (
   preSignedUrl: string,
   file: File,
@@ -104,8 +109,8 @@ const upload2S3WithProgress = async (
 const upload2S3 = async (
   files: FileList,
   onProgress?: OnTotalProgressCallback,
-): Promise<string[]> => {
-  const result: string[] = []
+): Promise<UploadResultItem[]> => {
+  const result: UploadResultItem[] = []
 
   for (let i = 0; i < files.length; i++) {
     try {
@@ -127,7 +132,7 @@ const upload2S3 = async (
           onProgress(files.length, i + 1, file.name, progress)
         }
       })
-      result.push(res.imageUrl)
+      result.push({ url: res.imageUrl, thumbUrl: res.imageUrl })
     } catch (err) {
       toast.error(`上传文件到 S3 失败, ${err}`)
     }
@@ -140,8 +145,8 @@ const uploadFile2ServerWithProgress = (
   url: string,
   file: File,
   onProgress: OnProgressCallback,
-): Promise<string[]> =>
-  new Promise<string[]>((resolve, reject) => {
+): Promise<UploadResultItem[]> =>
+  new Promise<UploadResultItem[]>((resolve, reject) => {
     const xhr = new XMLHttpRequest()
 
     xhr.addEventListener("load", () => {
@@ -161,7 +166,13 @@ const uploadFile2ServerWithProgress = (
         return reject(new Error(`${res?.message || "请求失败"}`))
       }
 
-      resolve(res.data || [])
+      const data: Array<{ url: string; thumbUrl: string } | string> = res.data || []
+      const items: UploadResultItem[] = data.map(item =>
+        typeof item === 'string'
+          ? { url: item, thumbUrl: item }
+          : { url: item.url, thumbUrl: item.thumbUrl || item.url }
+      )
+      resolve(items)
     })
     xhr.addEventListener("error", () => reject(new Error("File upload failed")))
     xhr.addEventListener("abort", () =>
@@ -186,8 +197,8 @@ const uploadFile2ServerWithProgress = (
 const uploadFile2Server = async (
   files: FileList,
   onProgress?: OnTotalProgressCallback,
-): Promise<string[]> => {
-  const result: string[] = []
+): Promise<UploadResultItem[]> => {
+  const result: UploadResultItem[] = []
 
   for (let i = 0; i < files.length; i++) {
     try {
@@ -196,20 +207,7 @@ const uploadFile2Server = async (
         onProgress(files.length, i + 1, file.name, 0)
       }
 
-      // const hash = await sha256(file)
-      // const ext = file.name.split(".").pop()
-      // const filename = `${hash}.${ext}`
-      // const res = await useMyFetch<{ exist: boolean, path: string }>(`/file/exist?filename=${filename}`)
-      // if (res.exist) {
-      //   result.push(res.path)
-      //   if (onProgress) {
-      //     onProgress(files.length, i + 1, file.name, 1)
-      //   }
-
-      //   continue
-      // }
-
-      const urlList = await uploadFile2ServerWithProgress(
+      const items = await uploadFile2ServerWithProgress(
         "/api/file/upload",
         file,
         progress => {
@@ -219,12 +217,12 @@ const uploadFile2Server = async (
         },
       )
 
-      if (!urlList.length) {
+      if (!items.length) {
         toast.error(`上传文件到服务器失败`)
         continue
       }
 
-      result.push(...urlList)
+      result.push(...items)
     } catch (e) {
       toast.error(`上传文件到服务器失败, ${e}`)
     }
@@ -236,7 +234,7 @@ const uploadFile2Server = async (
 export const useUpload = async (
   files: FileList,
   onProgress?: OnTotalProgressCallback,
-): Promise<string[]> => {
+): Promise<UploadResultItem[]> => {
   if (files.length === 0) {
     toast.error("没有选择文件")
     return []
@@ -257,31 +255,46 @@ export const md = markdownit({
   breaks: true,
 })
 
-createHighlighterCore({
-  themes: [import("shiki/themes/github-dark.mjs")],
-  langs: [
-    import("shiki/langs/c.mjs"),
-    import("shiki/langs/css.mjs"),
-    import("shiki/langs/html.mjs"),
-    import("shiki/langs/javascript.mjs"),
-    import("shiki/langs/json.mjs"),
-    import("shiki/langs/python.mjs"),
-    import("shiki/langs/shellscript.mjs"),
-    import("shiki/langs/sql.mjs"),
-    import("shiki/langs/tsx.mjs"),
-    import("shiki/langs/xml.mjs"),
-    import("shiki/langs/yaml.mjs"),
-    import("shiki/langs/go.mjs"),
-  ],
-  loadWasm: import("shiki/wasm"),
-}).then(highlighter => {
-  md.use(
-    //@ts-ignore
-    fromHighlighter(highlighter, {
-      themes: {
-        light: "github-dark",
-        dark: "github-dark",
-      },
-    }),
-  )
-})
+// 单例：延迟加载 Shiki，不阻塞首屏
+let highlighterPromise: ReturnType<typeof createHighlighterCore> | null = null
+
+const getHighlighter = () => {
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighterCore({
+      themes: [import("shiki/themes/github-dark.mjs")],
+      langs: [
+        import("shiki/langs/c.mjs"),
+        import("shiki/langs/css.mjs"),
+        import("shiki/langs/html.mjs"),
+        import("shiki/langs/javascript.mjs"),
+        import("shiki/langs/json.mjs"),
+        import("shiki/langs/python.mjs"),
+        import("shiki/langs/shellscript.mjs"),
+        import("shiki/langs/sql.mjs"),
+        import("shiki/langs/tsx.mjs"),
+        import("shiki/langs/xml.mjs"),
+        import("shiki/langs/yaml.mjs"),
+        import("shiki/langs/go.mjs"),
+      ],
+      loadWasm: import("shiki/wasm"),
+    })
+  }
+  return highlighterPromise
+}
+
+// 首屏渲染后延迟 2 秒预加载 Shiki，不阻塞首屏 JS 解析
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    getHighlighter().then(highlighter => {
+      md.use(
+        //@ts-ignore
+        fromHighlighter(highlighter, {
+          themes: {
+            light: "github-dark",
+            dark: "github-dark",
+          },
+        }),
+      )
+    }).catch(console.error)
+  }, 2000)
+}

@@ -72,10 +72,18 @@ func (m MemoHandler) handleImgConfigs(sysConfigVO *vo.FullSysConfigVO, memo *db.
 		}
 
 		if strings.HasPrefix(img, "/upload/") {
-			thumb_filename := img + "_thumb"
-			thumb_filepath := path.Join(m.base.cfg.UploadDir, path.Base(thumb_filename))
-			if fs_util.Exists(thumb_filepath) {
-				imgConfig.ThumbUrl = &thumb_filename
+			// 优先使用 WebP 600w 缩略图（新版），其次降级到 _thumb 旧版缩略图
+			imgBase := strings.TrimPrefix(img, "/upload/")
+			imgBaseNoExt := strings.TrimSuffix(imgBase, path.Ext(imgBase))
+			webpThumb := fmt.Sprintf("/upload/%s_%dw.webp", imgBaseNoExt, ThumbMedium)
+			webpThumbPath := path.Join(m.base.cfg.UploadDir, fmt.Sprintf("%s_%dw.webp", imgBaseNoExt, ThumbMedium))
+			oldThumb := img + "_thumb"
+			oldThumbPath := path.Join(m.base.cfg.UploadDir, path.Base(oldThumb))
+
+			if fs_util.Exists(webpThumbPath) {
+				imgConfig.ThumbUrl = &webpThumb
+			} else if fs_util.Exists(oldThumbPath) {
+				imgConfig.ThumbUrl = &oldThumb
 			}
 		} else if sysConfigVO.S3.ThumbnailSuffix != "" && strings.HasPrefix(img, sysConfigVO.S3.Domain) {
 			thumbnailSuffix := sysConfigVO.S3.ThumbnailSuffix
