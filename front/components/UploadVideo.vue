@@ -42,9 +42,10 @@
               </template>
             </UInput>
 
-            <p v-if="filename" class="text-xs text-gray-400">正在上传({{ current }}/{{ total }})</p>
-            <p v-if="filename" class="text-xs text-gray-400">{{ filename }}</p>
-            <UProgress :value="progress" v-if="progress > 0" indicator/>
+            <p v-if="statusLine" class="text-xs text-gray-400">{{ statusLine }}</p>
+            <p v-if="filename && !extractingPoster" class="text-xs text-gray-400">正在上传({{ current }}/{{ total }})</p>
+            <p v-if="filename && !extractingPoster" class="text-xs text-gray-400">{{ filename }}</p>
+            <UProgress :value="progress" v-if="progress > 0 && !extractingPoster" indicator/>
           </template>
         </UTabs>
         
@@ -62,11 +63,13 @@
 import type { Video, VideoType } from "~/types";
 import { toast } from "vue-sonner";
 import { useUpload } from "~/utils";
+import { extractVideoPosterBlob } from "~/utils/extractVideoPoster";
 
 const props = withDefaults(defineProps<Video>(), {
   type: "youtube",
-  value: ""
-})
+  value: "",
+  poster: "",
+});
 const emit = defineEmits(['confirm'])
 
 const youtubeUrl = ref('')
@@ -76,6 +79,24 @@ const progress = ref(0)
 const filename = ref('')
 const total = ref(0)
 const current = ref(0)
+const extractingPoster = ref(false)
+const statusLine = computed(() => {
+  if (extractingPoster.value) {
+    return "正在抽取视频首帧作为封面…";
+  }
+  return "";
+});
+
+/** 本地上传成功后与封面 URL 对应，用于点击「确定」时写入 ext.video.poster */
+const lastUploadedVideoUrl = ref("");
+const lastUploadedPosterUrl = ref("");
+
+function inheritedPoster(type: VideoType, value: string): string {
+  if (props.type === type && props.value === value) {
+    return (props.poster || "").trim();
+  }
+  return "";
+}
 
 const items = [{
   slot: 'uploadVideo',
@@ -115,120 +136,186 @@ const bilibiliUrlTemplateList = [
 ]
 
 watch(props, () => {
-  if (props.type === 'youtube') {
-    youtubeUrl.value = props.value
-  } else if (props.type === 'bilibili') {
-    bilibiliUrl.value = props.value
-  } else if (props.type === 'online') {
-    onlineUrl.value = props.value
+  if (props.type === "youtube") {
+    youtubeUrl.value = props.value;
+  } else if (props.type === "bilibili") {
+    bilibiliUrl.value = props.value;
+  } else if (props.type === "online") {
+    onlineUrl.value = props.value;
   }
-})
+});
 
 const handleUploadVideo = async (files: FileList) => {
   for (let i = 0; i < files.length; i++) {
     if (files[i].type.indexOf("video") < 0) {
       toast.error("只能上传视频文件");
-      return
+      return;
     }
   }
+  const file = files[0];
+  lastUploadedVideoUrl.value = "";
+  lastUploadedPosterUrl.value = "";
+
+  extractingPoster.value = true;
+  progress.value = 0;
+  filename.value = file.name;
+
+  let posterBlob: Blob | null = null;
+  try {
+    posterBlob = await extractVideoPosterBlob(file);
+  } catch {
+    posterBlob = null;
+  } finally {
+    extractingPoster.value = false;
+  }
+
+  if (!posterBlob) {
+    toast.info("未能截取封面，将使用无图占位（仍可正常播放）");
+  }
+
   const result = await useUpload(files, (totalSize: number, index: number, name: string, p: number) => {
-    progress.value = Math.round(p * 100)
-    filename.value = name
-    total.value = totalSize
-    current.value = index
-  })
+    progress.value = Math.round(p * 100);
+    filename.value = name;
+    total.value = totalSize;
+    current.value = index;
+  });
+
+  let posterUrl = "";
+  if (posterBlob && result.length) {
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(new File([posterBlob], "video-poster.jpg", { type: "image/jpeg" }));
+      const posterList = await useUpload(dt.files, (totalSize, index, name, p) => {
+        progress.value = Math.round(p * 100);
+        filename.value = name;
+        total.value = totalSize;
+        current.value = index;
+      });
+      if (posterList.length) {
+        posterUrl = posterList[0];
+      }
+    } catch {
+      toast.warning("封面上传失败，动态仍可保存");
+    }
+  }
+
   if (result.length) {
-    toast.success("上传成功")
-    onlineUrl.value = result[0]
+    toast.success("上传成功");
+    onlineUrl.value = result[0];
+    lastUploadedVideoUrl.value = result[0];
+    lastUploadedPosterUrl.value = posterUrl;
   }
-}
+  progress.value = 0;
+  filename.value = "";
+};
 
-const emitUrl = (type: VideoType, value: string) => {
-  if (type !== 'youtube') {
-    youtubeUrl.value = ''
+/**
+ * @param poster 传入 string 表示明确设置（可为空串）；不传则在与 props 中 type/value 一致时继承原 poster
+ */
+const emitUrl = (type: VideoType, value: string, poster?: string) => {
+  if (type !== "youtube") {
+    youtubeUrl.value = "";
   }
 
-  if (type !== 'bilibili') {
-    bilibiliUrl.value = ''
+  if (type !== "bilibili") {
+    bilibiliUrl.value = "";
   }
 
-  if (type !== 'online') {
-    onlineUrl.value = ''
+  if (type !== "online") {
+    onlineUrl.value = "";
   }
 
-  emit('confirm', {
+  let resolvedPoster = "";
+  if (poster !== undefined) {
+    resolvedPoster = poster;
+  } else {
+    resolvedPoster = inheritedPoster(type, value);
+  }
+
+  emit("confirm", {
     type,
     value,
-  })
-}
+    poster: resolvedPoster,
+  });
+};
 
 const confirm = (close: Function) => {
   if (bilibiliUrl.value.trim() && youtubeUrl.value.trim()) {
-    toast.warning("请勿同时填写两个地址")
-    return
+    toast.warning("请勿同时填写两个地址");
+    return;
   }
 
   if (bilibiliUrl.value.trim()) {
-    if (bilibiliUrl.value.startsWith('https://player.bilibili.com/player.html')) {
-      emitUrl('bilibili', bilibiliUrl.value)
-      close()
-      return
+    if (bilibiliUrl.value.startsWith("https://player.bilibili.com/player.html")) {
+      emitUrl("bilibili", bilibiliUrl.value);
+      close();
+      return;
     }
 
     for (const bilibiliUrlTemplate of bilibiliUrlTemplateList) {
-      const { reg, template } = bilibiliUrlTemplate
-      const [_, matchedValue] = bilibiliUrl.value.match(reg) || []
+      const { reg, template } = bilibiliUrlTemplate;
+      const [_, matchedValue] = bilibiliUrl.value.match(reg) || [];
       if (matchedValue) {
-        const url = template.replace('@{placeholder}', matchedValue)
-        emitUrl('bilibili', url)
-        close()
-        return
+        const url = template.replace("@{placeholder}", matchedValue);
+        emitUrl("bilibili", url);
+        close();
+        return;
       }
     }
 
-    toast.warning("无效的B站视频地址")
-    return
+    toast.warning("无效的B站视频地址");
+    return;
   }
 
   if (youtubeUrl.value.trim()) {
-    if (youtubeUrl.value.startsWith('https://www.youtube.com/embed')) {
-      emitUrl('youtube', youtubeUrl.value)
-      close()
-      return
+    if (youtubeUrl.value.startsWith("https://www.youtube.com/embed")) {
+      emitUrl("youtube", youtubeUrl.value);
+      close();
+      return;
     }
 
     for (const youtubeUrlTemplate of youtubeUrlTemplateList) {
-      const { reg, template } = youtubeUrlTemplate
-      const [_, matchedValue] = youtubeUrl.value.match(reg) || []
+      const { reg, template } = youtubeUrlTemplate;
+      const [_, matchedValue] = youtubeUrl.value.match(reg) || [];
       if (matchedValue) {
-        const url = template.replace('@{placeholder}', matchedValue)
-        emitUrl('youtube', url)
-        close()
-        return
+        const url = template.replace("@{placeholder}", matchedValue);
+        emitUrl("youtube", url);
+        close();
+        return;
       }
     }
 
-    toast.warning("无效的Youtube视频地址")
-    return
+    toast.warning("无效的Youtube视频地址");
+    return;
   }
 
   if (onlineUrl.value.trim()) {
-    emitUrl('online', onlineUrl.value.trim())
-    close()
-    return
+    const url = onlineUrl.value.trim();
+    let poster = "";
+    if (url === lastUploadedVideoUrl.value && lastUploadedPosterUrl.value) {
+      poster = lastUploadedPosterUrl.value;
+    } else {
+      poster = inheritedPoster("online", url);
+    }
+    emitUrl("online", url, poster);
+    close();
+    return;
   }
-}
+};
 
 const reset = () => {
-  youtubeUrl.value = ''
-  bilibiliUrl.value = ''
-  onlineUrl.value = ''
+  youtubeUrl.value = "";
+  bilibiliUrl.value = "";
+  onlineUrl.value = "";
+  lastUploadedVideoUrl.value = "";
+  lastUploadedPosterUrl.value = "";
 
-  emit('confirm', {
-    type: 'youtube',
-    value: ""
-  })
-}
+  emit("confirm", {
+    type: "youtube",
+    value: "",
+    poster: "",
+  });
+};
 
 
 </script>

@@ -140,7 +140,8 @@ const defaultState = {
   },
   video: {
     type: 'youtube' as VideoType,
-    value: ""
+    value: "",
+    poster: "",
   },
   doubanBook: {} as DoubanBook,
   doubanMovie: {} as DoubanMovie,
@@ -190,8 +191,11 @@ const updateMusic = (music: MusicDTO) => {
 }
 
 const handleVideo = (video: Video) => {
-  state.video = video
-}
+  state.video = {
+    ...video,
+    poster: video.poster ?? "",
+  };
+};
 
 const videoPosterForEditIframe = computed(() => {
   const v = state.video;
@@ -290,7 +294,10 @@ onMounted(async () => {
       ext = {} as ExtDTO
     }
     Object.assign(state.music, ext.music)
-    Object.assign(state.video, ext.video)
+    Object.assign(state.video, ext.video);
+    if (state.video.poster === undefined || state.video.poster === null) {
+      state.video.poster = "";
+    }
     doubanType.value = ext.doubanBook && ext.doubanBook.title ? 'book' : 'movie'
     doubanData.value = doubanType.value === 'book' ? ext.doubanBook : ext.doubanMovie
     selectedLabel.value = res.tags ? res.tags.substring(0,res.tags.length-1).split(',') : []
