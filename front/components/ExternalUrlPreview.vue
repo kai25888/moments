@@ -2,7 +2,7 @@
   <div v-if="props.url"
        class="flex flex-row gap-2 my-2 bg-[#f7f7f7] dark:bg-[#212121] items-center dark:border-gray-700/50 p-2 border rounded"
   >
-    <img class="w-8 h-8" :src="props.favicon" alt=""><a
+    <img class="w-8 h-8" :src="props.favicon" alt="" loading="lazy" decoding="async"><a
       :href="props.url" target="_blank" class="text-[#576b95]">{{ props.title }}</a>
   </div>
 </template>

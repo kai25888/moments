@@ -26,8 +26,72 @@ type CommentHandler struct {
 	base BaseHandler
 }
 
+type commentListResp struct {
+	List []db.Comment `json:"list,omitempty"`
+}
+
 func NewCommentHandler(injector do.Injector) *CommentHandler {
 	return &CommentHandler{do.MustInvoke[BaseHandler](injector)}
+}
+
+func (c CommentHandler) syncMemoCommentCount(memoID int32) {
+	var count int64
+	c.base.db.Table("Comment").Where("memoId = ?", memoID).Count(&count)
+	c.base.db.Table("Memo").Where("id = ?", memoID).Update("commentCount", count)
+}
+
+// ListComments godoc
+//
+//	@Tags		Comment
+//	@Summary	获取评论列表
+//	@Accept		json
+//	@Produce	json
+//	@Param		memoId	query	int	true	"动态ID"
+//	@Success	200
+//	@Router		/api/comment/list [post]
+func (c CommentHandler) ListComments(ctx echo.Context) error {
+	memoID, err := strconv.Atoi(ctx.QueryParam("memoId"))
+	if err != nil || memoID <= 0 {
+		return FailResp(ctx, ParamError)
+	}
+
+	var (
+		memo        db.Memo
+		sysConfig   db.SysConfig
+		sysConfigVO vo.FullSysConfigVO
+		comments    []db.Comment
+	)
+
+	context := ctx.(CustomContext)
+	currentUser := context.CurrentUser()
+
+	if err = c.base.db.First(&memo, memoID).Error; errors.Is(err, gorm.ErrRecordNotFound) {
+		return FailResp(ctx, ParamError)
+	}
+
+	showType := int32(1)
+	if memo.ShowType != nil {
+		showType = *memo.ShowType
+	}
+	if showType != 1 && (currentUser == nil || currentUser.Id != memo.UserId) {
+		return FailRespWithMsg(ctx, Fail, "暂无权限查看")
+	}
+
+	c.base.db.First(&sysConfig)
+	_ = json.Unmarshal([]byte(sysConfig.Content), &sysConfigVO)
+
+	commentOrder := strings.ToUpper(sysConfigVO.CommentOrder)
+	if commentOrder != "ASC" {
+		commentOrder = "DESC"
+	}
+
+	if err = c.base.db.Where("memoId = ?", memoID).Order("createdAt " + commentOrder).Find(&comments).Error; err != nil {
+		return FailRespWithMsg(ctx, Fail, "读取评论失败")
+	}
+
+	return SuccessResp(ctx, commentListResp{
+		List: comments,
+	})
 }
 
 // RemoveComment godoc
@@ -64,6 +128,7 @@ func (c CommentHandler) RemoveComment(ctx echo.Context) error {
 	if c.base.db.Delete(&comment).RowsAffected != 1 {
 		return FailRespWithMsg(ctx, Fail, "删除失败")
 	}
+	c.syncMemoCommentCount(comment.MemoId)
 	return SuccessResp(ctx, h{})
 }
 
@@ -202,6 +267,7 @@ func (c CommentHandler) AddComment(ctx echo.Context) error {
 	comment.MemoId = req.MemoID
 
 	if err = c.base.db.Save(&comment).Error; err == nil {
+		c.syncMemoCommentCount(comment.MemoId)
 		go func() {
 			frontendHost := fmt.Sprintf("%s://%s", ctx.Scheme(), ctx.Request().Host)
 			if err = c.commentEmailNotification(comment, frontendHost); err != nil {

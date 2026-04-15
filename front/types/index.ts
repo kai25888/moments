@@ -14,6 +14,7 @@ export type CommentVO = {
     id: number
     content: string
     username: string
+    email?: string
     website?: string
     replyTo: string
     createdAt: string
@@ -29,6 +30,7 @@ export type  MemoVO = {
     location: string
     imgs: string
     favCount: number
+    commentCount: number
     userId: number
     createdAt: string
     updatedAt: string
@@ -42,6 +44,7 @@ export type  MemoVO = {
     comments: Array<CommentVO>
     tags: string
     imgConfigs: Array<{
+        id: number;
         url: string;
         thumbUrl: string;
     }>

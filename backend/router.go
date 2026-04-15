@@ -44,6 +44,7 @@ func setupRouter(injector do.Injector) {
 	memoGroup.POST("/getDoubanBookInfo", memoHandler.GetDoubanBookInfo)
 
 	commentGroup := apiGroup.Group("/comment")
+	commentGroup.POST("/list", commentHandler.ListComments)
 	commentGroup.POST("/add", commentHandler.AddComment)
 	commentGroup.POST("/remove", commentHandler.RemoveComment)
 

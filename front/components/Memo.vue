@@ -90,6 +90,7 @@
           <music-preview
             v-if="extJSON.music && extJSON.music.id"
             v-bind="extJSON.music"
+            lazy
           />
           <douban-book-preview
             v-if="extJSON.doubanBook && extJSON.doubanBook.title"
@@ -270,14 +271,27 @@
             </div>
           </div>
           <div class="flex flex-col gap-1" v-if="sysConfig.enableComment">
+            <button
+              v-if="item.commentCount > 0 && !commentsLoaded && !commentsLoading"
+              class="px-4 pt-2 text-left text-xs text-[#576b95] dark:text-slate-300"
+              @click="loadComments"
+            >
+              查看评论（{{ item.commentCount }}）
+            </button>
+            <div
+              v-else-if="commentsLoading"
+              class="px-4 pt-2 text-left text-xs text-gray-400"
+            >
+              评论加载中...
+            </div>
             <CommentBox :comment-id="0" :memo-id="item.id" />
             <div
               class="space-y-1"
-              :class="[item.comments && item.comments.length > 0 ? 'py-2' : '']"
+              :class="[comments.length > 0 ? 'py-2' : '']"
             >
               <div
-                v-if="item.comments && item.comments.length > 0"
-                v-for="c in item.comments"
+                v-if="comments.length > 0"
+                v-for="c in comments"
                 :key="c.id"
                 class="px-4 relative flex-col text-sm"
               >
@@ -296,7 +310,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ExtDTO, MemoVO, SysConfigVO } from "~/types";
+import type { CommentVO, ExtDTO, MemoVO, SysConfigVO } from "~/types";
 import { toast } from "vue-sonner";
 import { memoChangedEvent, memoReloadEvent } from "~/event";
 import Comment from "~/components/Comment.vue";
@@ -344,6 +358,10 @@ const item = computed(() => {
   return props.memo;
 });
 
+const comments = ref<Array<CommentVO>>(item.value.comments || []);
+const commentsLoaded = ref(comments.value.length > 0);
+const commentsLoading = ref(false);
+
 const global = useGlobalState();
 
 const moreToolbar = ref(false);
@@ -370,6 +388,9 @@ const tags = computed(() => {
 });
 
 const doComment = () => {
+  if (!commentsLoaded.value && item.value.commentCount > 0) {
+    void loadComments();
+  }
   const value = item.value.id + "#0";
   if (currentCommentBox.value === value) {
     currentCommentBox.value = "";
@@ -439,9 +460,43 @@ const likeMemo = async (id: number) => {
   }
 };
 
+const loadComments = async () => {
+  commentsLoading.value = true;
+  try {
+    const res = await useMyFetch<{ list: Array<CommentVO> }>(
+      "/comment/list?memoId=" + item.value.id,
+    );
+    comments.value = res.list || [];
+    commentsLoaded.value = true;
+  } finally {
+    commentsLoading.value = false;
+  }
+};
+
+watch(
+  () => item.value.comments,
+  value => {
+    if (!isDetailPage.value && commentsLoaded.value) {
+      return;
+    }
+    comments.value = value || [];
+    commentsLoaded.value = comments.value.length > 0;
+  },
+);
+
+const stopMemoChangedListener = memoChangedEvent.on((id: number) => {
+  if (id !== item.value.id || !commentsLoaded.value) {
+    return;
+  }
+  void loadComments();
+});
+
 onMounted(() => {
   const likes = getLikedMemos();
   liked.value = likes.findIndex((r) => r === item.value.id) >= 0;
+  if (isDetailPage.value && item.value.commentCount > 0 && comments.value.length === 0) {
+    void loadComments();
+  }
   if (!isDetailPage.value) {
     setTimeout(() => {
       const { height } = useElementSize(contentRef.value);
@@ -450,6 +505,10 @@ onMounted(() => {
       }
     }, 20);
   }
+});
+
+onBeforeUnmount(() => {
+  stopMemoChangedListener();
 });
 
 const content = computed(() => {

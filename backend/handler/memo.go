@@ -175,35 +175,6 @@ func (m MemoHandler) ListMemos(c echo.Context) error {
 	tx.Session(&gorm.Session{}).Order("pinned desc, createdAt desc").Limit(req.Size).Offset(offset).Find(&list)
 	tx.Session(&gorm.Session{}).Count(&total)
 
-	commentOrder := strings.ToUpper(sysConfigVO.CommentOrder)
-	if commentOrder != "ASC" {
-		commentOrder = "DESC"
-	}
-	if len(list) > 0 {
-		memoIDs := make([]int32, 0, len(list))
-		for _, memo := range list {
-			memoIDs = append(memoIDs, memo.Id)
-		}
-
-		var allComments []db.Comment
-		m.base.db.
-			Where("memoId IN ?", memoIDs).
-			Order(fmt.Sprintf("memoId ASC, createdAt %s", commentOrder)).
-			Find(&allComments)
-
-		commentMap := make(map[int32][]db.Comment, len(memoIDs))
-		for _, comment := range allComments {
-			if len(commentMap[comment.MemoId]) >= 5 {
-				continue
-			}
-			commentMap[comment.MemoId] = append(commentMap[comment.MemoId], comment)
-		}
-
-		for i := range list {
-			list[i].Comments = commentMap[list[i].Id]
-		}
-	}
-
 	for i := range list {
 		m.handleImgConfigs(&sysConfigVO, &list[i])
 	}
