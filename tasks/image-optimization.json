@@ -1,0 +1,90 @@
+{
+  "task": "image-optimization",
+  "title": "图片加载性能优化",
+  "created": "2026-04-15T17:00:00+08:00",
+  "updated": "2026-04-15T17:41:00+08:00",
+
+  "frontend": {
+    "status": "in_progress",
+    "owner": "frontend-ai",
+    "progress": 85,
+    "dependencies": ["BE-001", "BE-002", "BE-003"],
+    "done": [],
+    "todo": ["构建验证"]
+  },
+
+  "backend": {
+    "status": "done",
+    "owner": "backend-ai",
+    "progress": 100,
+    "completedAt": "2026-04-15T17:35:00+08:00",
+    "tasks": {
+      "BE-001": {
+        "title": "多尺寸缩略图生成",
+        "status": "done",
+        "file": "handler/compress.go",
+        "completedAt": "2026-04-15T17:30:00+08:00"
+      },
+      "BE-002": {
+        "title": "上传接口返回 thumbUrl",
+        "status": "done",
+        "file": "handler/file.go",
+        "completedAt": "2026-04-15T17:32:00+08:00"
+      },
+      "BE-003": {
+        "title": "Memo 接口返回 imgConfigs",
+        "status": "done",
+        "file": "handler/memo.go",
+        "completedAt": "2026-04-15T17:35:00+08:00"
+      },
+      "BE-004": {
+        "title": "Nginx 缓存配置",
+        "status": "done",
+        "file": "docs/nginx.conf",
+        "completedAt": "2026-04-15T17:30:00+08:00"
+      },
+      "BE-005": {
+        "title": "Cache-Control 响应头",
+        "status": "done",
+        "file": "middleware/cache.go",
+        "completedAt": "2026-04-15T17:30:00+08:00"
+      },
+      "BE-006": {
+        "title": "现有图片批量转码",
+        "status": "pending",
+        "file": "scripts/batch-convert.go",
+        "note": "可选，后续执行"
+      }
+    }
+  },
+
+  "api_contract": {
+    "upload_response": {
+      "type": "object",
+      "properties": {
+        "url": { "type": "string", "example": "/upload/abc123_1200w.webp" },
+        "thumbUrl": { "type": "string", "example": "/upload/abc123_600w.webp" }
+      }
+    },
+    "memo_response": {
+      "imgConfigs": [
+        {
+          "url": "/upload/abc123.webp",
+          "thumbUrl": "/upload/abc123_600w.webp"
+        }
+      ]
+    }
+  },
+
+  "milestones": {
+    "M1": { "name": "独立完成", "status": "done", "doneAt": "2026-04-15" },
+    "M2": { "name": "前后端联调", "status": "pending" },
+    "M3": { "name": "生产部署", "status": "pending" }
+  },
+
+  "notes": [
+    "缩略图命名: {hash}_300w.webp, {hash}_600w.webp, {hash}_1200w.webp",
+    "兼容旧版本: {hash}.jpg_thumb 后缀",
+    "WebP 格式，浏览器支持 > 95%"
+  ]
+}

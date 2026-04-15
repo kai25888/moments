@@ -2,9 +2,10 @@ package main
 
 import (
 	"github.com/kingwrcy/moments/handler"
+	appMiddleware "github.com/kingwrcy/moments/middleware"
 	"github.com/kingwrcy/moments/vo"
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
+	echomw "github.com/labstack/echo/v4/middleware"
 	"github.com/samber/do/v2"
 	echoSwagger "github.com/swaggo/echo-swagger"
 )
@@ -62,12 +63,14 @@ func setupRouter(injector do.Injector) {
 	fileGroup.POST("/s3PreSigned", fileHandler.S3PreSigned)
 
 	uploadGroup := e.Group("/upload")
-	uploadGroup.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+	uploadGroup.Use(echomw.StaticWithConfig(echomw.StaticConfig{
 		Root:       cfg.UploadDir,
 		HTML5:      false,
 		IgnoreBase: true,
 		Browse:     false,
 	}))
+	// 添加缓存头中间件
+	uploadGroup.Use(appMiddleware.StaticCache())
 
 	rssGroup := e.Group("/rss")
 	rssGroup.GET("", rssHandler.GetRss)

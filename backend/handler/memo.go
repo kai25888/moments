@@ -69,10 +69,19 @@ func (m MemoHandler) handleImgConfigs(sysConfigVO *vo.FullSysConfigVO, memo *db.
 		}
 
 		if strings.HasPrefix(img, "/upload/") {
-			thumb_filename := img + "_thumb"
-			thumb_filepath := path.Join(m.base.cfg.UploadDir, path.Base(thumb_filename))
-			if fs_util.Exists(thumb_filepath) {
-				imgConfig.ThumbUrl = &thumb_filename
+			// 新的缩略图命名规范: {hash}_600w.webp, {hash}_1200w.webp
+			// 优先查找 600w 缩略图
+			thumbUrl := generateThumbUrl(img, "600w")
+			thumbPath := path.Join(m.base.cfg.UploadDir, path.Base(thumbUrl))
+			if fs_util.Exists(thumbPath) {
+				imgConfig.ThumbUrl = &thumbUrl
+			} else {
+				// 兼容旧版本: {hash}_thumb
+				legacyThumb := img + "_thumb"
+				legacyPath := path.Join(m.base.cfg.UploadDir, path.Base(legacyThumb))
+				if fs_util.Exists(legacyPath) {
+					imgConfig.ThumbUrl = &legacyThumb
+				}
 			}
 		} else if sysConfigVO.S3.ThumbnailSuffix != "" && strings.HasPrefix(img, sysConfigVO.S3.Domain) {
 			thumbnailSuffix := sysConfigVO.S3.ThumbnailSuffix
@@ -88,6 +97,29 @@ func (m MemoHandler) handleImgConfigs(sysConfigVO *vo.FullSysConfigVO, memo *db.
 	}
 
 	memo.ImgConfigs = &imgConfigs
+}
+
+// generateThumbUrl 根据原图 URL 生成缩略图 URL
+// 支持新格式: /upload/{hash}.webp -> /upload/{hash}_600w.webp
+func generateThumbUrl(originUrl, size string) string {
+	if !strings.HasPrefix(originUrl, "/upload/") {
+		return originUrl
+	}
+
+	// 去掉 /upload/ 前缀
+	pathPart := strings.TrimPrefix(originUrl, "/upload/")
+
+	// 查找最后一个 . 的位置（扩展名前缀）
+	extIdx := strings.LastIndex(pathPart, ".")
+	if extIdx == -1 {
+		return originUrl
+	}
+
+	baseName := pathPart[:extIdx]
+	ext := pathPart[extIdx:]
+
+	// 返回缩略图 URL: /upload/{hash}_600w.webp
+	return fmt.Sprintf("/upload/%s_%s%s", baseName, size, ext)
 }
 
 // ListMemos godoc

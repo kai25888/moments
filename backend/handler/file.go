@@ -31,6 +31,12 @@ type FileHandler struct {
 	base BaseHandler
 }
 
+// UploadRespItem 上传响应项 - 配合前端 COLLABORATION.md
+type UploadRespItem struct {
+	Url      string `json:"url"`      // 大图 URL (1200w)
+	ThumbUrl string `json:"thumbUrl"` // 缩略图 URL (600w)
+}
+
 func NewFileHandler(injector do.Injector) *FileHandler {
 	return &FileHandler{do.MustInvoke[BaseHandler](injector)}
 }
@@ -46,7 +52,7 @@ func NewFileHandler(injector do.Injector) *FileHandler {
 //	@Router		/api/file/upload [post]
 func (f FileHandler) Upload(c echo.Context) error {
 	var (
-		result []string
+		result []UploadRespItem
 	)
 
 	form, err := c.MultipartForm()
@@ -77,30 +83,24 @@ func (f FileHandler) Upload(c echo.Context) error {
 			return FailRespWithMsg(c, Fail, "上传文件异常")
 		}
 
-		// 计算文件后缀
-		ext := filepath.Ext(file.Filename)
+		// 计算文件后缀（统一用 webp）
+		ext := getWebpExt(file.Filename)
+		finalFilename := fmt.Sprintf("%s%s", sha256, ".webp")
+		finalPath := path.Join(f.base.cfg.UploadDir, finalFilename)
 
-		// 计算文件本地路径
-		filename := fmt.Sprintf("%s%s", sha256, ext)
-		filePath := path.Join(f.base.cfg.UploadDir, filename)
+		// 添加到结果中 - 返回 url 和 thumbUrl
+		result = append(result, UploadRespItem{
+			Url:      fmt.Sprintf("/upload/%s_1200w.webp", sha256),
+			ThumbUrl: fmt.Sprintf("/upload/%s_600w.webp", sha256),
+		})
 
-		// 添加到结果中
-		result = append(result, "/upload/"+filename)
-
-		// 如果文件存在，则跳过保存操作
-		if fs_util.Exists(filePath) {
+		// 如果文件存在，跳过保存和生成
+		if fs_util.Exists(finalPath) {
+			f.base.log.Debug().Msgf("文件已存在，跳过: %s", finalFilename)
 			continue
 		}
 
-		// 创建原始文件
-		dst, err := os.Create(filePath)
-		if err != nil {
-			f.base.log.Error().Msgf("打开目标文件异常: %v", err)
-			return FailRespWithMsg(c, Fail, "上传文件异常")
-		}
-		defer dst.Close()
-
-		// 重置文件指针到开头
+		// 重置文件指针
 		if seeker, ok := reader.(io.Seeker); ok {
 			if _, err := seeker.Seek(0, io.SeekStart); err != nil {
 				f.base.log.Error().Msgf("重置文件指针异常: %v", err)
@@ -108,23 +108,72 @@ func (f FileHandler) Upload(c echo.Context) error {
 			}
 		}
 
-		// 保存文件数据
+		// 保存原始文件到临时路径
+		tmpPath := finalPath + ".tmp"
+		dst, err := os.Create(tmpPath)
+		if err != nil {
+			f.base.log.Error().Msgf("创建临时文件异常: %v", err)
+			return FailRespWithMsg(c, Fail, "上传文件异常")
+		}
+		defer dst.Close()
+
 		if _, err = io.Copy(dst, reader); err != nil {
 			f.base.log.Error().Msgf("复制文件异常: %v", err)
 			return FailRespWithMsg(c, Fail, "上传文件异常")
 		}
+		dst.Close()
 
-		// 生成并保存缩略图文件
-		if SupportCompress(filename) {
+		// 异步生成多尺寸缩略图
+		go func(tmpPath, finalPath string) {
+			log := f.base.log.With().Str("file", tmpPath).Logger()
+			log.Debug().Msg("开始异步生成缩略图")
+
+			files, err := GenerateAllThumbs(tmpPath, strings.TrimSuffix(finalPath, ".webp"), log)
+			if err != nil {
+				log.Error().Msgf("缩略图生成失败: %v", err)
+				// 失败时保留原始文件
+				os.Rename(tmpPath, strings.TrimSuffix(finalPath, ".webp")+".jpg")
+				return
+			}
+
+			// 删除临时文件
+			os.Remove(tmpPath)
+			log.Info().Msgf("缩略图生成完成: %v", files)
+		}(tmpPath, finalPath)
+
+		// 兼容旧版：生成单个缩略图（用于 S3 等场景）
+		if SupportCompress(file.Filename) {
 			thumb_filename := fmt.Sprintf("%s_thumb%s", sha256, ext)
 			thumb_filepath := path.Join(f.base.cfg.UploadDir, thumb_filename)
-			if err := CompressImage(f, filePath, thumb_filepath, 30); err != nil {
-				f.base.log.Error().Msgf("压缩文件异常: %v", err)
+			if err := CompressImage(f, tmpPath, thumb_filepath, 30); err != nil {
+				f.base.log.Error().Msgf("旧版缩略图生成失败: %v", err)
 			}
 		}
 	}
 
 	return SuccessResp(c, result)
+}
+
+// getWebpExt 根据原始文件名返回 webp 扩展名
+func getWebpExt(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp":
+		return ".webp"
+	default:
+		return ext
+	}
+}
+
+// IsWebpSupported 判断文件格式是否支持 WebP 转换
+func IsWebpSupported(filename string) bool {
+	ext := strings.ToLower(filepath.Ext(filename))
+	switch ext {
+	case ".jpg", ".jpeg", ".png", ".gif", ".bmp":
+		return true
+	default:
+		return false
+	}
 }
 
 func (f FileHandler) Exist(c echo.Context) error {
