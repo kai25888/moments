@@ -108,7 +108,6 @@
             "
             :url="extJSON.video.value"
             :poster="videoPosterForIframe"
-            lazy
           />
           <video-preview
             v-if="
@@ -118,7 +117,6 @@
             "
             :url="extJSON.video.value"
             :poster="videoPosterForOnline"
-            lazy
           />
         </div>
 
