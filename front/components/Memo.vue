@@ -106,6 +106,7 @@
               extJSON.video.value
             "
             :url="extJSON.video.value"
+            lazy
           />
           <video-preview
             v-if="
@@ -114,6 +115,7 @@
               extJSON.video.value
             "
             :url="extJSON.video.value"
+            lazy
           />
         </div>
 

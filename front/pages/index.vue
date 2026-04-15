@@ -118,7 +118,7 @@ const hasNext = ref(false)
 const total = ref(0)
 const state = reactive({
   page: 1,
-  size: 10,
+  size: 5,
 })
 
 const memos = ref<Array<MemoVO>>([])
