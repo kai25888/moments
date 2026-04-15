@@ -269,22 +269,54 @@
           </div>
           <div class="flex flex-col gap-1" v-if="sysConfig.enableComment">
             <CommentBox :comment-id="0" :memo-id="item.id" />
+            <!-- 🔥 评论延迟加载：默认收起，点击展开 -->
             <div
+              v-if="item.commentCount > 0"
               class="space-y-1"
-              :class="[item.comments && item.comments.length > 0 ? 'py-2' : '']"
+              :class="[showComments && commentsLoaded && item.comments?.length ? 'py-2' : '']"
             >
+              <!-- 收起时显示评论数和展开按钮 -->
               <div
-                v-if="item.comments && item.comments.length > 0"
-                v-for="c in item.comments"
-                :key="c.id"
-                class="px-4 relative flex-col text-sm"
+                v-if="!showComments"
+                class="px-4 py-2 text-sm text-[#576b95] cursor-pointer hover:underline"
+                @click="loadComments"
               >
-                <Comment
-                  :comment="c"
-                  :memo-id="item.id"
-                  :memo-user-id="item.user.id"
-                />
+                查看全部 {{ item.commentCount }} 条评论 ▼
               </div>
+              
+              <!-- 展开后显示评论 -->
+              <template v-else>
+                <!-- 加载中骨架 -->
+                <div v-if="!commentsLoaded" class="px-4 py-2 space-y-2">
+                  <div v-for="i in Math.min(3, item.commentCount)" :key="i" class="flex gap-2">
+                    <USkeleton class="w-6 h-6 rounded-full shrink-0" />
+                    <div class="flex-1 space-y-1">
+                      <USkeleton class="h-3 w-20" />
+                      <USkeleton class="h-3 w-full" />
+                    </div>
+                  </div>
+                </div>
+                <!-- 评论列表 -->
+                <div
+                  v-else-if="item.comments && item.comments.length > 0"
+                  v-for="c in item.comments"
+                  :key="c.id"
+                  class="px-4 relative flex-col text-sm"
+                >
+                  <Comment
+                    :comment="c"
+                    :memo-id="item.id"
+                    :memo-user-id="item.user.id"
+                  />
+                </div>
+                <!-- 收起按钮 -->
+                <div
+                  class="px-4 py-2 text-sm text-[#576b95] cursor-pointer hover:underline"
+                  @click="showComments = false"
+                >
+                  收起评论 ▲
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -303,6 +335,10 @@ import { md } from "~/utils";
 
 const showMore = ref(false);
 const showMoreClicked = ref(false);
+
+// 🔥 评论延迟加载状态
+const showComments = ref(false);
+const commentsLoaded = ref(false);
 const isDetailPage = computed(() => {
   return route.path.startsWith("/memo/");
 });
@@ -373,6 +409,21 @@ const doComment = () => {
 
 const doShowMore = () => {
   showMoreClicked.value = !showMoreClicked.value;
+};
+
+// 🔥 评论延迟加载函数
+const loadComments = async () => {
+  if (commentsLoaded.value) {
+    showComments.value = true;
+    return;
+  }
+  showComments.value = true;
+  // 如果没有缓存的评论，需要重新获取
+  if (!item.value.comments || item.value.comments.length === 0) {
+    const res = await useMyFetch<{ comments: any[] }>(`/comment/list?memoId=${item.value.id}`);
+    item.value.comments = res.comments;
+  }
+  commentsLoaded.value = true;
 };
 
 const go2Edit = async (id: number) => {

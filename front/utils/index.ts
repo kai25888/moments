@@ -234,24 +234,56 @@ export const md = markdownit({
   breaks: true,
 })
 
-createHighlighterCore({
-  themes: [import("shiki/themes/github-dark.mjs")],
-  langs: [
-    import("shiki/langs/c.mjs"),
-    import("shiki/langs/css.mjs"),
-    import("shiki/langs/html.mjs"),
-    import("shiki/langs/javascript.mjs"),
-    import("shiki/langs/json.mjs"),
-    import("shiki/langs/python.mjs"),
-    import("shiki/langs/shellscript.mjs"),
-    import("shiki/langs/sql.mjs"),
-    import("shiki/langs/tsx.mjs"),
-    import("shiki/langs/xml.mjs"),
-    import("shiki/langs/yaml.mjs"),
-    import("shiki/langs/go.mjs"),
-  ],
-  loadWasm: import("shiki/wasm"),
-}).then(highlighter => {
+// ✅ 优化：异步加载 Shiki，不阻塞首屏渲染
+let highlighterPromise: ReturnType<typeof createHighlighterCore> | null = null
+
+const getHighlighter = () => {
+  if (!highlighterPromise) {
+    highlighterPromise = createHighlighterCore({
+      themes: [import("shiki/themes/github-dark.mjs")],
+      langs: [
+        import("shiki/langs/c.mjs"),
+        import("shiki/langs/css.mjs"),
+        import("shiki/langs/html.mjs"),
+        import("shiki/langs/javascript.mjs"),
+        import("shiki/langs/json.mjs"),
+        import("shiki/langs/python.mjs"),
+        import("shiki/langs/shellscript.mjs"),
+        import("shiki/langs/sql.mjs"),
+        import("shiki/langs/tsx.mjs"),
+        import("shiki/langs/xml.mjs"),
+        import("shiki/langs/yaml.mjs"),
+        import("shiki/langs/go.mjs"),
+      ],
+      loadWasm: import("shiki/wasm"),
+    })
+  }
+  return highlighterPromise
+}
+
+// 页面首次加载后预加载 Shiki（不阻塞首屏）
+if (typeof window !== 'undefined') {
+  // 延迟 2 秒后预加载，让首屏先渲染
+  setTimeout(() => {
+    getHighlighter().then(highlighter => {
+      md.use(
+        //@ts-ignore
+        fromHighlighter(highlighter, {
+          themes: {
+            light: "github-dark",
+            dark: "github-dark",
+          },
+        }),
+      )
+    }).catch(console.error)
+  }, 2000)
+}
+
+// 首次使用时加载
+let mdEnhanceReady = false
+const ensureMdEnhance = async () => {
+  if (mdEnhanceReady) return
+  const highlighter = await getHighlighter()
   md.use(
     //@ts-ignore
     fromHighlighter(highlighter, {
@@ -261,4 +293,11 @@ createHighlighterCore({
       },
     }),
   )
-})
+  mdEnhanceReady = true
+}
+
+// 导出增强方法
+export const renderWithHighlight = async (content: string) => {
+  await ensureMdEnhance()
+  return md.render(content)
+}

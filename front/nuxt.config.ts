@@ -4,6 +4,24 @@ export default defineNuxtConfig({
     devtools: {enabled: false},
     modules: ["@nuxt/ui", '@nuxt/icon', '@nuxtjs/color-mode', '@vueuse/nuxt', 'dayjs-nuxt'],
     ssr: false,
+    
+    // ✅ 性能优化配置
+    app: {
+        head: {
+            meta: [
+                { name: "viewport", content: "width=device-width, initial-scale=1, user-scalable=no" },
+                { charset: "utf-8" },
+            ],
+            link: [
+                {href: `/css/APlayer.min.css`, rel: 'stylesheet'},
+            ],
+            script: [
+                {src: `/js/APlayer.min.js`, type: 'text/javascript', async: true, defer: true},
+                {src: `/js/Meting.min.js`, type: 'text/javascript', async: true, defer: true},
+                {src: `/js/main.js`, type: 'text/javascript', async: true, defer: true},
+            ]
+        }
+    },
     dayjs: {
         locales: ['zh'],
         defaultLocale: 'zh'
@@ -26,22 +44,6 @@ export default defineNuxtConfig({
         compilerOptions: {
             isCustomElement: (tag:string) => ['meting-js'].includes(tag),
         },
-    },
-    app: {
-        head: {
-            meta: [
-                { name: "viewport", content: "width=device-width, initial-scale=1, user-scalable=no" },
-                { charset: "utf-8" },
-            ],
-            link: [
-                {href: `/css/APlayer.min.css`, rel: 'stylesheet'},
-            ],
-            script: [
-                {src: `/js/APlayer.min.js`, type: 'text/javascript', async: true, defer: true},
-                {src: `/js/Meting.min.js`, type: 'text/javascript', async: true, defer: true},
-                {src: `/js/main.js`, type: 'text/javascript', async: true, defer: true},
-            ]
-        }
     },
     vite: {
         server: {

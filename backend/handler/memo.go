@@ -175,11 +175,8 @@ func (m MemoHandler) ListMemos(c echo.Context) error {
 	tx.Session(&gorm.Session{}).Order("pinned desc, createdAt desc").Limit(req.Size).Offset(offset).Find(&list)
 	tx.Session(&gorm.Session{}).Count(&total)
 
-	for i, memo := range list {
-		var comments []db.Comment
-		m.base.db.Where("memoId = ?", memo.Id).Order(fmt.Sprintf("createdAt %s", sysConfigVO.CommentOrder)).Limit(5).Find(&comments)
-		list[i].Comments = comments
-	}
+	// ✅ 优化：列表接口不再返回评论内容，只保留 commentCount
+	// 评论延迟加载由前端点击展开后调用 /api/comment/list 接口
 
 	for i := range list {
 		m.handleImgConfigs(&sysConfigVO, &list[i])

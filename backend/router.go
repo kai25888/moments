@@ -45,6 +45,7 @@ func setupRouter(injector do.Injector) {
 	commentGroup := apiGroup.Group("/comment")
 	commentGroup.POST("/add", commentHandler.AddComment)
 	commentGroup.POST("/remove", commentHandler.RemoveComment)
+	commentGroup.GET("/list", commentHandler.ListComments) // 🔥 评论延迟加载接口
 
 	sycConfigGroup := apiGroup.Group("/sysConfig")
 	sycConfigGroup.POST("/save", sycConfigHandler.SaveConfig)

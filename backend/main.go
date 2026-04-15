@@ -103,6 +103,7 @@ func main() {
 	migrateTo3(tx, myLogger)
 	migrateIframeVideoUrl(tx, myLogger)
 	migrateFriendLink(tx, myLogger)
+	migrateAddIndexes(tx, myLogger) // ✅ 新增：添加数据库索引
 
 	e.HideBanner = true
 	err = e.Start(fmt.Sprintf(":%d", cfg.Port))

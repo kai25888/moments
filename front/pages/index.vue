@@ -1,10 +1,30 @@
 <template>
   <Header v-bind:user="currentUser"/>
-  <div class="flex flex-col divide-y divide-[#C0BEBF]/20 ">
+  
+  <!-- 🔥 骨架屏加载状态 -->
+  <div v-if="loading" class="flex flex-col divide-y divide-[#C0BEBF]/20">
+    <div v-for="i in 5" :key="i" class="bg-white dark:bg-neutral-800 p-4">
+      <div class="flex gap-4">
+        <USkeleton class="w-10 h-10 rounded-full shrink-0" />
+        <div class="flex-1 space-y-2">
+          <USkeleton class="h-4 w-24" />
+          <USkeleton class="h-20 w-full" />
+          <div class="flex gap-2">
+            <USkeleton class="h-4 w-16" />
+            <USkeleton class="h-4 w-16" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 📝 实际内容 -->
+  <div v-else class="flex flex-col divide-y divide-[#C0BEBF]/20">
     <Memo v-bind:memo="m" v-for="m in memos" :key="m.id" />
   </div>
-  <div ref="loadMoreEle" class="text-xs text-center text-gray-500 py-2 cursor-pointer" @click="loadMore" v-if="hasNext">点击加载更多</div>
-  <div class="text-xs text-center text-gray-500 py-2" v-else>已经到底啦</div>
+  
+  <div ref="loadMoreEle" class="text-xs text-center text-gray-500 py-2 cursor-pointer" @click="loadMore" v-if="hasNext && !loading">点击加载更多</div>
+  <div class="text-xs text-center text-gray-500 py-2" v-else-if="!loading">已经到底啦</div>
 </template>
 
 <script setup lang="ts">
@@ -30,8 +50,11 @@ const state = reactive({
 })
 
 const memos = ref<Array<MemoVO>>([])
+const loading = ref(true) // 🔥 骨架屏状态
+
 onMounted(async () => {
   await reload()
+  loading.value = false
 })
 
 const reload = async () => {

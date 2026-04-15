@@ -40,9 +40,10 @@
             : 'full-cover-image-mult'
         "
       >
-        <img
+        <LazyImg
           class="cursor-zoom-in rounded"
-          :src="imageConfig.thumbUrl"
+          :src="imageConfig.url"
+          :placeholder="imageConfig.thumbUrl"
           :onerror="`javascript:this.src='${imageConfig.url}';this.onerror=null`"
         />
       </div>

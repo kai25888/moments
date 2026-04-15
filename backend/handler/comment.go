@@ -213,6 +213,29 @@ func (c CommentHandler) AddComment(ctx echo.Context) error {
 	return FailRespWithMsg(ctx, Fail, "发表评论失败")
 }
 
+// ListComments godoc
+//
+//	@Tags		Comment
+//	@Summary	获取评论列表（延迟加载）
+//	@Accept		json
+//	@Produce	json
+//	@Param		memoId	query	int	true	"memoID"
+//	@Success	200		{object}	h{data:map[string]any{comments:[]db.Comment}}
+//	@Router		/api/comment/list [get]
+func (c CommentHandler) ListComments(ctx echo.Context) error {
+	var comments []db.Comment
+	memoId, err := strconv.Atoi(ctx.QueryParam("memoId"))
+	if err != nil {
+		return FailResp(ctx, ParamError)
+	}
+	
+	c.base.db.Where("memoId = ?", memoId).
+		Order("createdAt DESC").
+		Find(&comments)
+	
+	return SuccessResp(ctx, h{"comments": comments})
+}
+
 func (c CommentHandler) commentEmailNotification(comment db.Comment, host string) error {
 	var (
 		memo        db.Memo

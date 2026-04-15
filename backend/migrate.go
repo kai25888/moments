@@ -176,6 +176,25 @@ WHERE
     (updatedAt NOT LIKE '%-%' AND length(updatedAt) = 13))`)
 }
 
+// ✅ 新增：添加索引优化查询性能
+func migrateAddIndexes(tx *gorm.DB, log zerolog.Logger) {
+	// Memo 表索引
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_memo_userId ON Memo(userId)`)
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_memo_createdAt ON Memo(createdAt)`)
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_memo_pinned ON Memo(pinned)`)
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_memo_showType ON Memo(showType)`)
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_memo_userId_createdAt ON Memo(userId, createdAt)`)
+	
+	// Comment 表索引
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_comment_memoId ON Comment(memoId)`)
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_comment_createdAt ON Comment(createdAt)`)
+	
+	// User 表索引
+	tx.Exec(`CREATE INDEX IF NOT EXISTS idx_user_username ON User(username)`)
+	
+	log.Info().Msg("数据库索引创建完成")
+}
+
 func migrateIframeVideoUrl(tx *gorm.DB, log zerolog.Logger) {
 	var memos []db.Memo
 	tx.Find(&memos)
