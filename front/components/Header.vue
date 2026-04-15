@@ -150,16 +150,25 @@
       </NuxtLink>
     </div>
 
-    <img class="header-img w-full" :src="props.user.coverUrl" alt="" />
+    <!-- 🔥 封面图 - 使用 loading="lazy" 懒加载 -->
+    <img 
+      class="header-img w-full" 
+      :src="props.user.coverUrl" 
+      alt="封面图"
+      loading="lazy"
+    />
     <div class="absolute right-2 bottom-[-40px]">
       <div class="userinfo flex flex-col">
         <div class="flex flex-row items-center gap-4 justify-end">
           <div class="username text-lg font-bold text-white">
             {{ props.user.nickname }}
           </div>
+          <!-- 🔥 头像 - 使用 loading="lazy" 懒加载 -->
           <img
             :src="props.user.avatarUrl"
             class="avatar w-[70px] h-[70px] rounded-xl"
+            loading="lazy"
+            alt="头像"
           />
         </div>
         <div class="slogon text-gray truncate w-full text-end text-xs mt-2">

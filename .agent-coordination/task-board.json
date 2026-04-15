@@ -1,0 +1,70 @@
+{
+  "project": "moments-fork 图片加载优化",
+  "description": "前后端协同优化图片加载性能",
+  "milestone": "M1-独立完成",
+  "agents": ["frontend-ai", "backend-ai"],
+  "tasks": [
+    {
+      "id": "FE-1",
+      "title": "ImageLazy 组件重构",
+      "status": "done",
+      "assignee": "frontend-ai",
+      "completedAt": "2026-04-15",
+      "notes": "修复懒加载逻辑、添加骨架屏动画"
+    },
+    {
+      "id": "FE-2",
+      "title": "构建验证",
+      "status": "pending",
+      "assignee": "frontend-ai",
+      "dependsOn": ["BE-1"],
+      "notes": "等待后端缩略图接口完成后验证"
+    },
+    {
+      "id": "BE-1",
+      "title": "缩略图生成",
+      "status": "pending",
+      "assignee": "backend-ai",
+      "dependsOn": [],
+      "notes": "实现 300w/600w/1200w 缩略图生成"
+    },
+    {
+      "id": "BE-2",
+      "title": "API 接口改造",
+      "status": "pending",
+      "assignee": "backend-ai",
+      "dependsOn": ["BE-1"],
+      "notes": "返回 imgConfigs 包含 thumbUrl 字段"
+    }
+  ],
+  "api": {
+    "upload": {
+      "method": "POST",
+      "path": "/api/file/upload",
+      "response": {
+        "url": "string",
+        "thumbUrl": "string"
+      },
+      "status": "pending",
+      "notes": "需后端实现后更新"
+    },
+    "memos": {
+      "method": "GET",
+      "path": "/api/memo/list",
+      "response": {
+        "imgConfigs": "[{ url: string, thumbUrl: string }]"
+      },
+      "status": "pending",
+      "notes": "列表接口返回缩略图"
+    }
+  },
+  "sharedTypes": {
+    "ImageConfig": {
+      "fields": {
+        "url": "string - 大图 URL",
+        "thumbUrl": "string - 缩略图 URL"
+      },
+      "status": "defined"
+    }
+  }
+}

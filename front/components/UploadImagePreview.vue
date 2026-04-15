@@ -40,11 +40,13 @@
             : 'full-cover-image-mult'
         "
       >
-        <LazyImg
+        <ImageLazy
           class="cursor-zoom-in rounded"
           :src="imageConfig.url"
-          :placeholder="imageConfig.thumbUrl"
-          :onerror="`javascript:this.src='${imageConfig.url}';this.onerror=null`"
+          :thumb-src="imageConfig.thumbUrl"
+          :alt="'图片 ' + (z + 1)"
+          :aspect-ratio="images.length === 1 ? undefined : '1/1'"
+          @error="handleThumbError(imageConfig, z)"
         />
       </div>
     </MyFancyBox>
@@ -91,6 +93,12 @@ watchEffect(() => {
 
 const removeImage = async (index: number) => {
   emit("removeImage", index);
+};
+
+// 缩略图加载失败处理（降级到原图）
+const handleThumbError = (imageConfig: ImgConfig, index: number) => {
+  console.warn('缩略图加载失败，图片索引:', index)
+  // LazyImg 内部会自动尝试原图，这里只是记录日志
 };
 
 onMounted(() => {
