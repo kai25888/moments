@@ -23,7 +23,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 sm:max-w-xs">
+        <div class="flex items-center gap-3">
           <div class="rounded-2xl border border-black/5 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
             <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">动态</div>
             <div class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{{ total || 0 }}</div>
@@ -31,9 +31,6 @@
               {{ total > 0 ? "已发布内容" : "还没有发布内容" }}
             </div>
           </div>
-        </div>
-
-        <div class="flex flex-wrap gap-3">
           <NuxtLink
             v-if="global.userinfo.token"
             to="/new"
@@ -47,12 +44,6 @@
             class="inline-flex items-center justify-center rounded-full bg-[#9fc84a] px-4 py-2 text-sm font-medium text-[#1f2a10] transition hover:brightness-95"
           >
             注册并加入
-          </NuxtLink>
-          <NuxtLink
-            to="/rss"
-            class="inline-flex items-center justify-center rounded-full border border-slate-300/80 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-[#9fc84a] hover:text-slate-950 dark:border-slate-700 dark:text-slate-200 dark:hover:border-[#9fc84a] dark:hover:text-white"
-          >
-            订阅更新
           </NuxtLink>
           <NuxtLink
             v-if="!global.userinfo.token"
