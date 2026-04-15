@@ -7,33 +7,15 @@
       :style="skeletonStyle"
     />
     
-    <!-- 🔥 使用 NuxtImg 组件进行图片优化 -->
-    <NuxtImg
-      v-if="useNuxtImage && !error"
-      v-show="!loading && loaded"
-      ref="nuxtImgRef"
-      :src="currentSrc"
-      :alt="alt"
-      :style="imgStyle"
-      :width="imgWidth"
-      :height="imgHeight"
-      :loading="lazy ? 'lazy' : 'eager'"
-      :format="imageFormat"
-      :quality="imageQuality"
-      :placeholder="placeholder"
-      @load="onImgLoad"
-      @error="onImgError"
-    />
-    
-    <!-- 回退原生 img 标签 -->
+    <!-- 🔥 使用原生 img 标签 (CSR 模式更稳定) -->
     <img
-      v-else-if="!error"
-      v-show="!loading && loaded"
+      v-if="currentSrc && !error"
       ref="imgRef"
+      class="lazy-img"
+      :class="{ 'opacity-0': loading }"
       :src="currentSrc"
       :alt="alt"
       :style="imgStyle"
-      :loading="lazy ? 'lazy' : 'eager'"
       :width="imgWidth"
       :height="imgHeight"
       @load="onImgLoad"
@@ -80,23 +62,13 @@ const emit = defineEmits(['load', 'error'])
 
 const containerRef = ref<HTMLDivElement | null>(null)
 const imgRef = ref<HTMLImageElement | null>(null)
-const nuxtImgRef = ref<any>(null)
 const loading = ref(true)
 const loaded = ref(false)
 const error = ref(false)
 const currentSrc = ref('')
 
-// 检测是否可以使用 NuxtImg
-const useNuxtImage = ref(true)
 const imgWidth = computed(() => props.width)
 const imgHeight = computed(() => props.height)
-
-// 图片格式
-const imageFormat = computed(() => {
-  if (props.format === 'original') return undefined
-  return props.format
-})
-const imageQuality = computed(() => props.quality)
 
 // 骨架屏样式
 const skeletonStyle = computed(() => {
@@ -169,14 +141,21 @@ onUnmounted(() => {
 })
 
 // 监听 src 变化
-watch(() => props.src, (newSrc) => {
+watch(() => props.src, () => {
   loading.value = true
   loaded.value = false
   error.value = false
-  currentSrc.value = props.lazy ? '' : getSrcToLoad()
+  currentSrc.value = ''
   
   if (!props.lazy) {
     currentSrc.value = getSrcToLoad()
+  } else {
+    // 懒加载模式：重新观察
+    nextTick(() => {
+      if (containerRef.value) {
+        observer?.observe(containerRef.value)
+      }
+    })
   }
 })
 </script>
@@ -192,10 +171,23 @@ watch(() => props.src, (newSrc) => {
   background-color: #2a2a2a;
 }
 
-.lazy-skeleton {
+.lazy-img {
   width: 100%;
   height: 100%;
-  min-height: 100px;
+  object-fit: cover;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.lazy-img.opacity-0 {
+  opacity: 0;
+}
+
+.lazy-skeleton {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background: linear-gradient(
     90deg,
     #f0f0f0 25%,
