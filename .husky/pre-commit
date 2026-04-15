@@ -1,0 +1,30 @@
+#!/bin/sh
+# pre-commit hook - 代码提交前自动检查
+
+echo "🔍 Running pre-commit checks..."
+
+# 前端检查
+echo "📦 Checking frontend (ESLint)..."
+cd front
+pnpm lint
+if [ $? -ne 0 ]; then
+  echo "❌ Frontend lint failed! Please fix the issues above."
+  cd ..
+  exit 1
+fi
+echo "✅ Frontend checks passed!"
+cd ..
+
+# 后端检查
+echo "📦 Checking backend (go vet)..."
+cd backend
+go vet ./...
+if [ $? -ne 0 ]; then
+  echo "❌ Backend check failed! Please fix the issues above."
+  cd ..
+  exit 1
+fi
+echo "✅ Backend checks passed!"
+cd ..
+
+echo "✅ All pre-commit checks passed! Ready to commit."
