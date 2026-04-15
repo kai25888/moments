@@ -17,6 +17,10 @@ It is for the `moments` fork whose long-term custom line is `moments-plus`.
 
 Always update these files at the repository root unless the user explicitly requests a different location.
 
+## Read-only startup in Cursor
+
+To load memory and recent logs before work without writing anything, use the project slash command `/memory-bootstrap` (backed by `.cursor/commands/memory-bootstrap.md`). That flow reads this skill and the files above for a startup brief only; it does not run the **Update workflow** below.
+
 ## Project rules to preserve
 
 These facts should be treated as current long-term defaults unless the user changes them:
