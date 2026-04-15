@@ -14,6 +14,12 @@ export const useMyFetch = async <T>(url: string, data?: any) => {
 
   const userinfo = global.value.userinfo
   if (userinfo.token) {
+    const tokenAt = (global.value.userinfo as { tokenAt?: number }).tokenAt
+    if (tokenAt && Date.now() - tokenAt > 7 * 86400 * 1000) {
+      global.value.userinfo = {}
+      await navigateTo('/user/login')
+      throw new Error('登录已过期，请重新登录')
+    }
     headers["x-api-token"] = userinfo.token
   }
 

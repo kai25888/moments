@@ -42,7 +42,7 @@
         <UIcon name="i-carbon-logout" class="w-5 h-5 cursor-pointer" />
       </NuxtLink>
       <span
-        v-if="$route.path === '/friend' && global.userinfo.id === 1"
+        v-if="$route.path === '/friend' && isAdmin"
         class="flex"
       >
         <UIcon
@@ -123,7 +123,7 @@
         />
       </NuxtLink>
       <NuxtLink
-        v-if="$route.path !== '/sys/settings' && global.userinfo.id === 1"
+        v-if="$route.path !== '/sys/settings' && isAdmin"
         to="/sys/settings"
         title="系统设置"
       >
@@ -173,8 +173,10 @@
 import { toast } from "vue-sonner";
 import type { UserVO } from "~/types";
 import { useGlobalState } from "~/store";
+import { useIsAdmin } from "~/utils/auth";
 
 const global = useGlobalState();
+const isAdmin = useIsAdmin();
 const route = useRoute();
 
 const props = defineProps<{ user: UserVO }>();

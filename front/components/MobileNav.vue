@@ -107,7 +107,7 @@
         <span class="text-sm mt-1">友链</span>
       </div>
       <div
-        v-if="$route.path !== '/sys/settings' && global.userinfo.id === 1"
+        v-if="$route.path !== '/sys/settings' && isAdmin"
         class="flex flex-col items-center"
         @click="navigate('/sys/settings')"
         title="系统设置"
@@ -153,9 +153,11 @@
 import { toast } from "vue-sonner";
 import { useGlobalState } from "~/store";
 import type { SysConfigVO } from "~/types";
+import { useIsAdmin } from "~/utils/auth";
 
 const sysConfig = useState<SysConfigVO>("sysConfig");
 const global = useGlobalState();
+const isAdmin = useIsAdmin();
 const mode = useColorMode();
 const open = useState<boolean>("sidebarOpen", () => false);
 

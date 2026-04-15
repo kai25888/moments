@@ -112,7 +112,7 @@ func (f FileHandler) Upload(c echo.Context) error {
 			if SupportCompress(filename) {
 				thumbFilename := fmt.Sprintf("%s_thumb%s", sha256, ext)
 				thumbFilepath := path.Join(f.base.cfg.UploadDir, thumbFilename)
-				if err := CompressImage(f, filePath, thumbFilepath, 30); err != nil {
+				if err := CompressImage(f, filePath, thumbFilepath, 50); err != nil {
 					f.base.log.Error().Msgf("压缩文件异常: %v", err)
 				}
 			}

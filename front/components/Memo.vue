@@ -13,7 +13,7 @@
         <span>详情</span>
       </NuxtLink>
       <UIcon
-        v-if="global.userinfo.id === 1 || global.userinfo.id === item.userId"
+        v-if="isAdmin || global.userinfo.id === item.userId"
         name="i-solar-menu-dots-bold"
         class="w-5 h-5 cursor-pointer"
         @click="moreToolbar = true"
@@ -205,7 +205,7 @@
               <div
                 class="flex items-center justify-center gap-8 p-4 text-gray-500 dark:text-white h-[200px]"
               >
-                <template v-if="global.userinfo.id === 1">
+                <template v-if="isAdmin">
                   <div
                     class="flex flex-col gap-1 cursor-pointer items-center"
                     @click="setPinned(item.id)"
@@ -235,7 +235,7 @@
                 </template>
                 <template
                   v-if="
-                    global.userinfo.id === 1 ||
+                    isAdmin ||
                     global.userinfo.id === item.userId
                   "
                 >
@@ -319,6 +319,7 @@ import Comment from "~/components/Comment.vue";
 import { useGlobalState } from "~/store";
 import { md } from "~/utils";
 import { youtubePosterUrl } from "~/utils/videoPoster";
+import { useIsAdmin } from "~/utils/auth";
 
 const showMore = ref(false);
 const showMoreClicked = ref(false);
@@ -402,6 +403,8 @@ const commentsLoaded = ref(comments.value.length > 0);
 const commentsLoading = ref(false);
 
 const global = useGlobalState();
+
+const isAdmin = useIsAdmin();
 
 const moreToolbar = ref(false);
 

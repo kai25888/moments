@@ -65,6 +65,8 @@
 import type {MemoVO, UserVO} from "~/types";
 import {add, format, isSameDay, sub} from "date-fns";
 import Memo from "~/components/Memo.vue";
+
+definePageMeta({ middleware: 'auth' })
 import {memoChangedEvent, memoReloadEvent} from "~/event";
 import {useElementVisibility} from '@vueuse/core'
 

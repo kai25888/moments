@@ -261,6 +261,8 @@ import type {AdminUserVO, SysConfigVO, UserVO} from "~/types";
 import {toast} from "vue-sonner";
 import {useUpload} from "~/utils";
 
+definePageMeta({ middleware: 'auth' })
+
 const currentUser = useState<UserVO>('userinfo')
 const version = ref('')
 const commitId = ref('')

@@ -72,7 +72,8 @@ useHead({
 const doLogin = async () => {
   pending.value = true;
   try {
-    global.value.userinfo = await useMyFetch<LoginResp>("/user/login", state);
+    const userinfo = await useMyFetch<LoginResp>("/user/login", state);
+    global.value.userinfo = { ...userinfo, tokenAt: Date.now() };
     toast.success("登录成功,跳转到首页...");
     window.location.href = "/";
   } catch (error) {

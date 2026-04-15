@@ -37,6 +37,8 @@
 import type {UserVO} from "~/types";
 import {toast} from "vue-sonner";
 import {useUpload} from "~/utils";
+
+definePageMeta({ middleware: 'auth' })
 import {useGlobalState} from "~/store";
 const global = useGlobalState()
 const currentUser = useState<UserVO>('userinfo')
