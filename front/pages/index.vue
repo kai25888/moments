@@ -23,26 +23,12 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 gap-3 sm:max-w-xs">
           <div class="rounded-2xl border border-black/5 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
             <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">动态</div>
             <div class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{{ total || 0 }}</div>
             <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {{ total > 0 ? "已发布内容" : "还没有发布内容" }}
-            </div>
-          </div>
-          <div class="rounded-2xl border border-black/5 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-            <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">评论</div>
-            <div class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">{{ sysConfig.enableComment ? "已开启" : "已关闭" }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {{ sysConfig.enableComment ? "访客可参与互动" : "当前仅展示内容" }}
-            </div>
-          </div>
-          <div class="rounded-2xl border border-black/5 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
-            <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">注册</div>
-            <div class="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">{{ sysConfig.enableRegister ? "已开启" : "已关闭" }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {{ sysConfig.enableRegister ? "新用户可以创建账号" : "当前仅允许已有账号登录" }}
             </div>
           </div>
         </div>

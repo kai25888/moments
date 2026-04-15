@@ -107,6 +107,7 @@
               extJSON.video.value
             "
             :url="extJSON.video.value"
+            :poster="videoPosterForIframe"
             lazy
           />
           <video-preview
@@ -116,6 +117,7 @@
               extJSON.video.value
             "
             :url="extJSON.video.value"
+            :poster="videoPosterForOnline"
             lazy
           />
         </div>
@@ -316,6 +318,7 @@ import { memoChangedEvent, memoReloadEvent } from "~/event";
 import Comment from "~/components/Comment.vue";
 import { useGlobalState } from "~/store";
 import { md } from "~/utils";
+import { youtubePosterUrl } from "~/utils/videoPoster";
 
 const showMore = ref(false);
 const showMoreClicked = ref(false);
@@ -353,6 +356,42 @@ const extJSON = computed(() => {
   } catch {
     return {} as ExtDTO;
   }
+});
+
+/** 同条动态首张图，用作直链视频的封面兜底 */
+const firstMemoImagePoster = computed(() => {
+  const m = props.memo;
+  if (m.imgConfigs?.length) {
+    const c = m.imgConfigs[0];
+    const u = (c.thumbUrl || c.url || "").trim();
+    return u || undefined;
+  }
+  const first = (m.imgs || "").split(",").filter(Boolean)[0];
+  return first?.trim() || undefined;
+});
+
+const videoPosterForOnline = computed(() => {
+  const v = extJSON.value.video;
+  if (!v?.value || v.type !== "online") {
+    return undefined;
+  }
+  const explicit = (v.poster || "").trim();
+  return explicit || firstMemoImagePoster.value;
+});
+
+const videoPosterForIframe = computed(() => {
+  const v = extJSON.value.video;
+  if (!v?.value) {
+    return undefined;
+  }
+  const explicit = (v.poster || "").trim();
+  if (explicit) {
+    return explicit;
+  }
+  if (v.type === "youtube") {
+    return youtubePosterUrl(v.value);
+  }
+  return undefined;
 });
 const item = computed(() => {
   return props.memo;

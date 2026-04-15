@@ -89,8 +89,8 @@
                      v-bind="state.music"/>
       <douban-book-preview :book="doubanData" v-if="doubanType === 'book' && doubanData&& doubanData.title"/>
       <douban-movie-preview :movie="doubanData" v-if="doubanType === 'movie' && doubanData&& doubanData.title"/>
-      <video-preview-iframe v-if="['bilibili', 'youtube'].includes(state.video.type) && state.video.value" :url="state.video.value"/>
-      <video-preview v-if="state.video.type === 'online' && state.video.value" :url="state.video.value"/>
+      <video-preview-iframe v-if="['bilibili', 'youtube'].includes(state.video.type) && state.video.value" :url="state.video.value" :poster="videoPosterForEditIframe"/>
+      <video-preview v-if="state.video.type === 'online' && state.video.value" :url="state.video.value" :poster="videoPosterForEditOnline"/>
     </div>
   </div>
 
@@ -111,6 +111,7 @@ import type {
   VideoType
 } from "~/types";
 import {toast} from "vue-sonner";
+import { youtubePosterUrl } from "~/utils/videoPoster";
 import UploadImage from "~/components/UploadImage.vue";
 import Emoji from "~/components/Emoji.vue";
 import dayjs from "dayjs";
@@ -191,6 +192,34 @@ const updateMusic = (music: MusicDTO) => {
 const handleVideo = (video: Video) => {
   state.video = video
 }
+
+const videoPosterForEditIframe = computed(() => {
+  const v = state.video;
+  if (!v?.value) {
+    return undefined;
+  }
+  const explicit = (v.poster || "").trim();
+  if (explicit) {
+    return explicit;
+  }
+  if (v.type === "youtube") {
+    return youtubePosterUrl(v.value);
+  }
+  return undefined;
+});
+
+const videoPosterForEditOnline = computed(() => {
+  const v = state.video;
+  if (!v?.value || v.type !== "online") {
+    return undefined;
+  }
+  const explicit = (v.poster || "").trim();
+  if (explicit) {
+    return explicit;
+  }
+  const firstImg = state.imgs.split(",").filter(Boolean)[0];
+  return firstImg?.trim() || undefined;
+});
 
 const {x, y} = useMouse()
 const {y: windowY} = useWindowScroll()

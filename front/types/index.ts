@@ -161,6 +161,8 @@ export type DoubanMovie = {
 export type Video = {
     type: 'youtube' | 'bilibili' | 'online'
     value: string
+    /** 可选封面图 URL，用于懒加载占位；未设置时会尝试自动推断 */
+    poster?: string
 }
 
 export type VideoType = Video["type"]
