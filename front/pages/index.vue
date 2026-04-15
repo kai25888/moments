@@ -24,7 +24,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-          <div class="rounded-2xl border border-black/5 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+          <div class="flex-1 rounded-2xl border border-black/5 bg-white/80 px-4 py-3 dark:border-white/10 dark:bg-white/5">
             <div class="text-[11px] uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">动态</div>
             <div class="mt-2 text-2xl font-semibold text-slate-900 dark:text-white">{{ total || 0 }}</div>
             <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -34,21 +34,21 @@
           <NuxtLink
             v-if="global.userinfo.token"
             to="/new"
-            class="inline-flex items-center justify-center rounded-full bg-[#9fc84a] px-4 py-2 text-sm font-medium text-[#1f2a10] transition hover:brightness-95"
+            class="flex-1 inline-flex items-center justify-center rounded-full bg-[#9fc84a] px-4 py-2 text-sm font-medium text-[#1f2a10] transition hover:brightness-95"
           >
             发表新动态
           </NuxtLink>
           <NuxtLink
             v-else-if="sysConfig.enableRegister"
             to="/user/reg"
-            class="inline-flex items-center justify-center rounded-full bg-[#9fc84a] px-4 py-2 text-sm font-medium text-[#1f2a10] transition hover:brightness-95"
+            class="flex-1 inline-flex items-center justify-center rounded-full bg-[#9fc84a] px-4 py-2 text-sm font-medium text-[#1f2a10] transition hover:brightness-95"
           >
             注册并加入
           </NuxtLink>
           <NuxtLink
             v-if="!global.userinfo.token"
             to="/user/login"
-            class="inline-flex items-center justify-center rounded-full border border-transparent px-4 py-2 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
+            class="flex-1 inline-flex items-center justify-center rounded-full border border-transparent px-4 py-2 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100"
           >
             管理登录
           </NuxtLink>
@@ -82,7 +82,7 @@
       点击加载更多
     </button>
   </div>
-  <div class="px-4 py-5 text-center text-xs text-gray-500" v-else>已经到底啦</div>
+  <div class="px-4 py-5 text-center text-xs text-gray-500" v-else-if="!loading">已经到底啦</div>
 </template>
 
 <script setup lang="ts">
