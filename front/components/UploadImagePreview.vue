@@ -136,12 +136,12 @@ const gridStyle = computed(() => {
 </script>
 
 <style scoped>
-/* 多张图片：保持原始比例 */
+/* 多张图片：占满格子，cover 裁剪，无留白 */
 .full-cover-image-mult {
   width: 100%;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: 8px;
-  align-self: stretch;
 
   :deep(img) {
     width: 100%;
@@ -151,7 +151,7 @@ const gridStyle = computed(() => {
   }
 }
 
-/* 单张图片：保持原始比例，限制最大宽度 */
+/* 单张图片：保持原始比例 */
 .full-cover-image-single {
   width: 100%;
   max-width: 100%;
