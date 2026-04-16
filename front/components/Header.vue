@@ -8,51 +8,42 @@
       :class="{ 'bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md z-20 shadow-sm': y > 50 }"
       class="flex fixed justify-between items-center px-4 w-full md:w-[567px] top-0 transition-all duration-200"
     >
-      <!-- 左侧：返回 + 标题 -->
+      <!-- 左侧：返回按钮 -->
       <NuxtLink class="flex items-center" title="返回主页">
         <UIcon
           @click="navigateTo('/')"
           name="i-carbon-chevron-left"
-          class="w-5 h-5 cursor-pointer mr-3 text-gray-600 dark:text-gray-300"
+          class="w-5 h-5 cursor-pointer text-gray-600 dark:text-gray-300"
         />
-        <span class="text-sm text-gray-600 dark:text-gray-300" v-if="$route.path === '/user/calendar'">日历检索</span>
-        <span class="text-sm text-gray-600 dark:text-gray-300" v-else-if="$route.path === '/sys/settings'">系统设置</span>
-        <span class="text-sm text-gray-600 dark:text-gray-300" v-else-if="$route.path === '/user/settings'">用户中心</span>
-        <span class="text-sm text-gray-600 dark:text-gray-300" v-else-if="$route.path.indexOf('/tags/') >= 0">
-          {{ route.params.tag || "话题专栏" }}
-        </span>
-        <span class="text-sm text-gray-600 dark:text-gray-300" v-else-if="$route.path === '/friend'">友情链接</span>
-        <span class="text-sm text-gray-600 dark:text-gray-300" v-else>
-          <span v-if="!global.userinfo.token && $route.path === '/user/login'">登录</span>
-          <span v-else-if="!global.userinfo.token && $route.path === '/user/reg'">注册</span>
-          <span v-else>{{ props.user.nickname }}</span>
-        </span>
       </NuxtLink>
 
-      <!-- 右侧：用户头像 -->
-      <div class="flex items-center gap-2">
-        <!-- 登录状态：点击头像进入用户中心 -->
-        <NuxtLink v-if="global.userinfo.token" to="/user/settings" title="用户中心">
-          <img
-            v-if="props.user.avatarUrl"
-            :src="props.user.avatarUrl"
-            class="w-8 h-8 rounded-full ring-2 ring-white/50 shadow-md hover:ring-[#9fc84a] transition-all"
-          />
-          <div
-            v-else
-            class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center hover:bg-[#9fc84a]/20 transition-all"
-          >
-            <UIcon name="i-carbon-person" class="w-5 h-5 text-gray-400" />
-          </div>
-        </NuxtLink>
+      <!-- 右侧：功能按钮 -->
+      <div class="flex items-center gap-3">
+        <!-- 刷新按钮 -->
+        <UIcon
+          name="i-carbon-renew"
+          class="w-5 h-5 cursor-pointer text-gray-600 dark:text-gray-300 hover:text-[#9fc84a] transition-colors"
+          title="刷新"
+          @click="() => location.reload()"
+        />
 
-        <!-- 未登录：显示登录按钮 -->
-        <NuxtLink
-          v-else
-          to="/user/login"
-          class="text-sm text-[#9fc84a] hover:text-[#7ba428] transition-colors"
+        <!-- 日夜切换 -->
+        <button
+          class="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-center transition-colors"
+          title="切换主题"
+          @click="toggleColorMode"
         >
-          登录
+          <UIcon
+            :name="colorMode.value === 'dark' ? 'i-carbon-sun' : 'i-carbon-moon'"
+            class="w-5 h-5 text-gray-600 dark:text-gray-300"
+          />
+        </button>
+
+        <!-- 用户中心 -->
+        <NuxtLink to="/user/settings" title="用户中心">
+          <div class="w-8 h-8 rounded-full bg-[#9fc84a]/20 flex items-center justify-center hover:bg-[#9fc84a]/30 transition-all">
+            <UIcon name="i-carbon-user" class="w-5 h-5 text-[#9fc84a]" />
+          </div>
         </NuxtLink>
       </div>
     </div>
@@ -94,9 +85,14 @@ import { useGlobalState } from "~/store";
 
 const global = useGlobalState();
 const route = useRoute();
+const colorMode = useColorMode();
 
 const props = defineProps<{ user: UserVO }>();
 const { y } = useWindowScroll();
+
+const toggleColorMode = () => {
+  colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
+};
 </script>
 
 <style scoped></style>
