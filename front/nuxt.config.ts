@@ -10,6 +10,13 @@ export default defineNuxtConfig({
         'dayjs-nuxt',
         '@nuxt/image'  // 🔥 图片优化模块
     ],
+    colorMode: {
+        preference: 'system',  // 自动跟随系统主题
+        fallback: 'light',    // 系统不支持时的后备值
+        classSuffix: '',
+        dataValue: 'theme',
+        storageKey: 'nuxt-color-mode',
+    },
     ssr: false,
     dayjs: {
         locales: ['zh'],

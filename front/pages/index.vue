@@ -23,9 +23,6 @@
           </div>
 
           <div class="space-y-1 flex-1">
-            <div class="text-[11px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
-              {{ sysConfig.title || currentUser.nickname || "Moments" }}
-            </div>
             <div class="text-2xl font-semibold leading-tight text-slate-900 dark:text-white">
               {{ heroTitle }}
             </div>
