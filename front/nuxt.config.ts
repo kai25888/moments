@@ -2,7 +2,14 @@
 export default defineNuxtConfig({
     compatibilityDate: '2024-04-03',
     devtools: {enabled: false},
-    modules: ["@nuxt/ui", '@nuxt/icon', '@nuxtjs/color-mode', '@vueuse/nuxt', 'dayjs-nuxt'],
+    modules: [
+        "@nuxt/ui", 
+        '@nuxt/icon', 
+        '@nuxtjs/color-mode', 
+        '@vueuse/nuxt', 
+        'dayjs-nuxt',
+        '@nuxt/image'  // 🔥 图片优化模块
+    ],
     ssr: false,
     dayjs: {
         locales: ['zh'],
@@ -21,6 +28,23 @@ export default defineNuxtConfig({
             'grid-cols-1',
             'grid-cols-3',
         ]
+    },
+    // 🔥 @nuxt/image 配置 - 自动 WebP/AVIF 转换
+    image: {
+        format: ['webp', 'avif'],
+        quality: 80,
+        screens: {
+            xs: 320,
+            sm: 640,
+            md: 768,
+            lg: 1024,
+            xl: 1280,
+            xxl: 1536,
+        },
+        domains: [],  // 允许所有域名
+        alias: {
+            avatar: '/avatar',
+        },
     },
     vue: {
         compilerOptions: {

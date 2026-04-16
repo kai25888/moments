@@ -1,5 +1,8 @@
 <script setup>
-import { Fancybox } from '@fancyapps/ui/dist/index.esm.js';
+// 🔥 动态导入 Fancybox - 减少首屏 ~100KB
+import('@fancyapps/ui/dist/index.esm.js').then(({ Fancybox }) => {
+  window.Fancybox = Fancybox
+})
 
 const props = defineProps({
   options: Object,
@@ -7,11 +10,15 @@ const props = defineProps({
 const container = ref(null);
 
 const randomId = randomHexStr();
-onMounted(() => {
+
+onMounted(async () => {
+  // 等待 Fancybox 加载完成
+  await waitForFancybox()
+  
   Array.from(container.value.children).map((el) => {
     el.setAttribute('data-fancybox', `gallery-${randomId}`);
   });
-  Fancybox.bind(`[data-fancybox="gallery-${randomId}"]`, {
+  window.Fancybox.bind(`[data-fancybox="gallery-${randomId}"]`, {
     Thumbs: {
       type: 'modern',
     },
@@ -19,11 +26,12 @@ onMounted(() => {
   });
 });
 
-nextTick(() => {
-  Fancybox.unbind(container.value);
-  Fancybox.close();
+nextTick(async () => {
+  await waitForFancybox()
+  window.Fancybox.unbind(container.value);
+  window.Fancybox.close();
 
-  Fancybox.bind(`[data-fancybox="gallery-${randomId}"]`, {
+  window.Fancybox.bind(`[data-fancybox="gallery-${randomId}"]`, {
     Thumbs: {
       type: 'modern',
     },
@@ -41,8 +49,32 @@ function randomHexStr(len = 16, chars = '0123456789abcdefghijklmnopqrstuvwxyz') 
   return str;
 }
 
+// 等待 Fancybox 加载
+function waitForFancybox(timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    if (window.Fancybox) {
+      resolve(true)
+      return
+    }
+    
+    const start = Date.now()
+    const check = () => {
+      if (window.Fancybox) {
+        resolve(true)
+      } else if (Date.now() - start > timeout) {
+        reject(new Error('Fancybox 加载超时'))
+      } else {
+        setTimeout(check, 50)
+      }
+    }
+    check()
+  })
+}
+
 onUnmounted(() => {
-  Fancybox.destroy();
+  if (window.Fancybox) {
+    window.Fancybox.destroy();
+  }
 });
 </script>
 
