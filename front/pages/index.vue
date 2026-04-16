@@ -8,12 +8,27 @@
           <span>{{ heroAnnouncement }}</span>
         </div>
 
-        <div class="space-y-3">
-          <div class="text-[11px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
-            {{ sysConfig.title || currentUser.nickname || "Moments" }}
+        <div class="flex items-start gap-4">
+          <!-- 用户头像 -->
+          <img
+            v-if="currentUser.avatarUrl"
+            :src="currentUser.avatarUrl"
+            class="w-14 h-14 rounded-2xl ring-2 ring-white/50 shadow-md shrink-0"
+          />
+          <div
+            v-else
+            class="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0"
+          >
+            <UIcon name="i-carbon-person" class="w-8 h-8 text-gray-400" />
           </div>
-          <div class="text-3xl font-semibold leading-tight text-slate-900 dark:text-white">
-            {{ heroTitle }}
+
+          <div class="space-y-1 flex-1">
+            <div class="text-[11px] uppercase tracking-[0.35em] text-slate-400 dark:text-slate-500">
+              {{ sysConfig.title || currentUser.nickname || "Moments" }}
+            </div>
+            <div class="text-2xl font-semibold leading-tight text-slate-900 dark:text-white">
+              {{ heroTitle }}
+            </div>
           </div>
           <div class="text-sm leading-7 text-slate-600 dark:text-slate-300">
             {{ heroSubtitle }}

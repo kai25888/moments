@@ -56,27 +56,6 @@
       alt=""
     />
     <div v-else class="header-img w-full h-48 bg-gradient-to-br from-[#9fc84a] to-[#7ba428]" />
-    <!-- 用户信息 -->
-    <div class="absolute right-4 bottom-[-40px]">
-      <div class="flex flex-col items-end">
-        <div class="flex flex-row items-center gap-3">
-          <span class="text-lg font-bold text-white drop-shadow-md">
-            {{ props.user.nickname }}
-          </span>
-          <img
-            v-if="props.user.avatarUrl"
-            :src="props.user.avatarUrl"
-            class="avatar w-[70px] h-[70px] rounded-xl ring-2 ring-white/50 shadow-lg"
-          />
-          <div
-            v-else
-            class="avatar w-[70px] h-[70px] rounded-xl bg-gray-300 dark:bg-gray-600 flex items-center justify-center"
-          >
-            <UIcon name="i-carbon-person" class="w-10 h-10 text-gray-400" />
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 <script setup lang="ts">
