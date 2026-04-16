@@ -162,9 +162,10 @@
             class="avatar w-[70px] h-[70px] rounded-xl"
           />
         </div>
-        <div class="slogon text-gray truncate w-full text-end text-xs mt-2">
+        <!-- 签名已隐藏 -->
+        <!-- <div class="slogon text-gray truncate w-full text-end text-xs mt-2">
           {{ props.user.slogan }}
-        </div>
+        </div> -->
       </div>
     </div>
   </div>
