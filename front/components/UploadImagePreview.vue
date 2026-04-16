@@ -145,8 +145,8 @@ const gridStyle = computed(() => {
   overflow: hidden;
   border-radius: 8px;
 
-  :deep(img),
-  :deep(.image-wrapper) {
+  :deep(.lazy-image-container),
+  :deep(img) {
     position: absolute;
     top: 0;
     left: 0;
