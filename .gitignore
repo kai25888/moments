@@ -20,22 +20,3 @@ moments.exe
 
 # Review gate runtime stamp (generated, not versioned)
 .cursor/review-status.json
-
-# Capacitor - iOS
-front/ios/App/App/build/
-front/ios/App/App/DerivedData/
-front/ios/App/Pods/
-front/ios/App/App.xcworkspace/xcuserdata/
-front/ios/App/App.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
-
-# Capacitor - Android
-front/android/.gradle/
-front/android/build/
-front/android/app/build/
-front/android/.idea/
-front/android/local.properties
-front/android/captures/
-
-# Nuxt
-front/.nuxt/
-front/.output/
