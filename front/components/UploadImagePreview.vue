@@ -136,18 +136,23 @@ const gridStyle = computed(() => {
 </script>
 
 <style scoped>
-/* 多张图片：占满格子，cover 裁剪，无留白 */
+/* 多张图片：固定正方形尺寸，cover 裁剪 */
 .full-cover-image-mult {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 0;
+  padding-bottom: 100%; /* 强制正方形 */
+  position: relative;
   overflow: hidden;
   border-radius: 8px;
 
-  :deep(img) {
+  :deep(img),
+  :deep(.image-wrapper) {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
   }
 }
 
