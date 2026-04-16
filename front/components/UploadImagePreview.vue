@@ -114,19 +114,19 @@ onMounted(() => {
 
 const gridStyle = computed(() => {
   const count = imageConfigs.value.length || images.value.length;
-  let style = "max-width:100%; display:grid; gap: 0.5rem; align-items: start;";
+  let style = "max-width:100%; display:grid; gap: 0.5rem;";
   switch (count) {
     case 1:
       style += "grid-template-columns: 1fr; max-width:60%;";
       break;
     case 2:
-      style += "grid-template-columns: 1fr 1fr; aspect-ratio: 2 / 1;";
+      style += "grid-template-columns: 1fr 1fr;";
       break;
     case 3:
-      style += "grid-template-columns: 1fr 1fr 1fr; aspect-ratio: 3 / 1;";
+      style += "grid-template-columns: 2fr 1fr;";
       break;
     case 4:
-      style += "grid-template-columns: 1fr 1fr; aspect-ratio: 1;";
+      style += "grid-template-columns: 1fr 1fr 1fr 1fr;";
       break;
     default:
       style += "grid-template-columns: 1fr 1fr 1fr;";
@@ -136,15 +136,17 @@ const gridStyle = computed(() => {
 </script>
 
 <style scoped>
-/* 多张图片：保持原始比例，网格排列 */
+/* 多张图片：保持原始比例 */
 .full-cover-image-mult {
   width: 100%;
   overflow: hidden;
   border-radius: 8px;
+  align-self: stretch;
 
-  > img {
+  :deep(img) {
     width: 100%;
-    height: auto;
+    height: 100%;
+    object-fit: cover;
     display: block;
   }
 }
@@ -156,7 +158,7 @@ const gridStyle = computed(() => {
   overflow: hidden;
   border-radius: 8px;
 
-  > img {
+  :deep(img) {
     width: 100%;
     height: auto;
     max-height: 500px;
