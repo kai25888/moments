@@ -18,7 +18,13 @@
           : 'full-cover-image-mult'
       "
     >
-      <img :src="img.url" class="cursor-move rounded" />
+      <img
+        :src="img.url"
+        class="cursor-move rounded lazy-img"
+        loading="lazy"
+        decoding="async"
+        @load="onImgLoad"
+      />
       <div
         class="absolute top-0 right-0 px-1 bg-white dark:bg-gray-900 m-2 rounded hover:text-red-500 cursor-pointer"
         @click="removeImage(i)"
@@ -35,7 +41,7 @@
         :key="z"
         :href="imageConfig.url"
         :class="
-          images.length === 1
+          imageConfigs.length === 1
             ? 'full-cover-image-single'
             : 'full-cover-image-mult'
         "
@@ -45,8 +51,7 @@
           :src="imageConfig.url"
           :thumb-src="imageConfig.thumbUrl"
           :alt="'图片 ' + (z + 1)"
-          :aspect-ratio="images.length === 1 ? undefined : '1/1'"
-          @error="handleThumbError(imageConfig, z)"
+          :aspect-ratio="imageConfigs.length === 1 ? undefined : '1/1'"
         />
       </div>
     </MyFancyBox>
@@ -55,9 +60,10 @@
 
 <script setup lang="ts">
 import { useSortable } from "@vueuse/integrations/useSortable";
+import ImageLazy from "~/components/ImageLazy.vue";
 
 interface ImgConfig {
-  id: number;
+  id?: number;
   url: string;
   thumbUrl: string;
 }
@@ -67,7 +73,7 @@ const el = ref(null);
 const props = defineProps<{ imgs?: string; imgConfigs?: ImgConfig[] }>();
 const emit = defineEmits(["removeImage", "dragImage"]);
 
-const images = ref<ImgConfig[]>([]);
+const images = ref<{ id: number; url: string; thumbUrl: string }[]>([]);
 const imageConfigs = ref<ImgConfig[]>([]);
 
 watchEffect(() => {
@@ -80,7 +86,6 @@ watchEffect(() => {
 watchEffect(() => {
   imageConfigs.value = (props.imgConfigs || []).map((imgConfig) => ({
     ...imgConfig,
-    id: Math.random(),
   }));
 });
 
@@ -95,10 +100,8 @@ const removeImage = async (index: number) => {
   emit("removeImage", index);
 };
 
-// 缩略图加载失败处理（降级到原图）
-const handleThumbError = (imageConfig: ImgConfig, index: number) => {
-  console.warn('缩略图加载失败，图片索引:', index)
-  // LazyImg 内部会自动尝试原图，这里只是记录日志
+const onImgLoad = (e: Event) => {
+  (e.target as HTMLImageElement).classList.add("loaded");
 };
 
 onMounted(() => {
@@ -110,8 +113,9 @@ onMounted(() => {
 });
 
 const gridStyle = computed(() => {
-  let style = "max-width:100%; display:grid; gap: 0.5rem; align-items: start;"; // 确保内容顶部对齐
-  switch (images.value.length) {
+  const count = imageConfigs.value.length || images.value.length;
+  let style = "max-width:100%; display:grid; gap: 0.5rem; align-items: start;";
+  switch (count) {
     case 1:
       style += "grid-template-columns: 1fr; max-width:60%;";
       break;
@@ -132,10 +136,13 @@ const gridStyle = computed(() => {
 </script>
 
 <style scoped>
+/* 多张图片：统一 1:1 正方形 */
 .full-cover-image-mult {
   width: 100%;
-  max-height: 300px;
   aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e5e7eb;
 
   > img {
     width: 100%;
@@ -145,13 +152,30 @@ const gridStyle = computed(() => {
   }
 }
 
+/* 单张图片：统一最大高度 400px，保持原始比例或裁剪为 4:3 */
 .full-cover-image-single {
-  width: fit-content;
+  width: 100%;
+  max-height: 400px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #e5e7eb;
 
   > img {
-    max-height: 300px;
+    width: 100%;
+    height: 100%;
+    max-height: 400px;
     object-fit: cover;
     object-position: center;
   }
+}
+
+.lazy-img {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: #e5e7eb;
+}
+
+.lazy-img.loaded {
+  opacity: 1;
 }
 </style>
