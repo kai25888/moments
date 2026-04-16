@@ -136,36 +136,32 @@ const gridStyle = computed(() => {
 </script>
 
 <style scoped>
-/* 多张图片：统一 1:1 正方形 */
+/* 多张图片：保持原始比例，网格排列 */
 .full-cover-image-mult {
   width: 100%;
-  aspect-ratio: 1 / 1;
   overflow: hidden;
   border-radius: 8px;
-  background: #e5e7eb;
 
   > img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
+    height: auto;
+    display: block;
   }
 }
 
-/* 单张图片：统一最大高度 400px，保持原始比例或裁剪为 4:3 */
+/* 单张图片：保持原始比例，限制最大宽度 */
 .full-cover-image-single {
   width: 100%;
-  max-height: 400px;
+  max-width: 100%;
   overflow: hidden;
   border-radius: 8px;
-  background: #e5e7eb;
 
   > img {
     width: 100%;
-    height: 100%;
-    max-height: 400px;
-    object-fit: cover;
-    object-position: center;
+    height: auto;
+    max-height: 500px;
+    object-fit: contain;
+    display: block;
   }
 }
 
