@@ -33,6 +33,7 @@
 - Added branding-related configuration fields and connected them to the homepage, layout, footer, and admin settings page.
 - Hardened multiple security and stability risks in frontend and backend flows.
 - Consolidated `moments-plus/main` and `moments-plus/v*` image publishing into one workflow while keeping refs distinguishable in Actions.
+- 移动端 App 方案已迁移至独立仓库 `kai25888/moments-app`（Capacitor 壳化），原仓库已回退相关改动。
 
 ## Deployment Notes
 - The fork is optimized for direct image pulls on a NAS.
@@ -42,6 +43,12 @@
   - `docker pull ghcr.io/kai25888/moments-plus:v0.0.1`
   - `docker pull ghcr.io/kai25888/tech-standards:latest`
   - `docker pull ghcr.io/kai25888/tech-standards:v0.0.1`
+
+## Related Repositories
+| 仓库 | 用途 | 路径 |
+|------|------|------|
+| moments | 原仓库，Web 应用主开发 | `/Users/andy/moments` |
+| moments-app | 移动端 App（Capacitor 壳化） | `/Users/andy/moments-app` |
 
 ## High-Priority Follow-Ups
 - Replace admin checks based on `id == 1` with an explicit role model.
