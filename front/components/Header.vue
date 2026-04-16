@@ -7,6 +7,7 @@
     <div
       :class="{ 'bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md z-20 shadow-sm': y > 50 }"
       class="flex fixed justify-between items-center px-4 w-full md:w-[567px] top-0 transition-all duration-200"
+      :style="{ paddingTop: 'var(--safe-area-top, 0px)' }"
     >
       <!-- 左侧：返回按钮 -->
       <button class="w-8 h-8 rounded-full hover:bg-white/20 dark:hover:bg-gray-700 flex items-center justify-center transition-colors" title="返回主页" @click="navigateTo('/')">

@@ -9,7 +9,11 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "build:app": "nuxt generate && npx cap sync",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android"
   },
   "lint-staged": {
     "*.{js,ts,vue}": [
@@ -20,7 +24,6 @@
     ]
   },
   "dependencies": {
-    "@nuxt/image": "^1.10.0",
     "@fancyapps/ui": "^5.0.36",
     "@iconify-json/carbon": "^1.2.8",
     "@iconify-json/heroicons": "^1.2.2",
@@ -30,6 +33,7 @@
     "@iconify-json/octicon": "^1.2.5",
     "@iconify-json/solar": "^1.2.2",
     "@nuxt/icon": "1.12.0",
+    "@nuxt/image": "^1.10.0",
     "@nuxt/ui": "^2.22.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "crypto-js": "^4.2.0",
@@ -43,25 +47,34 @@
   },
   "packageManager": "pnpm@10.10.0",
   "devDependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/keyboard": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@nuxt/eslint": "^1.15.2",
     "@nuxtjs/tailwindcss": "^6.14.0",
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
-    "@typescript-eslint/parser": "^8.58.2",
     "@shikijs/markdown-it": "^1.29.2",
     "@types/crypto-js": "^4.2.2",
     "@types/grecaptcha": "^3.0.9",
     "@types/markdown-it": "^14.1.2",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
     "@vueuse/core": "^10.11.1",
     "@vueuse/nuxt": "^10.11.1",
     "dayjs": "^1.11.13",
     "dayjs-nuxt": "^2.1.11",
+    "eslint": "^10.2.0",
+    "eslint-plugin-vue": "^10.8.0",
+    "lint-staged": "^16.4.0",
     "sass": "^1.87.0",
     "shiki": "^1.29.2",
     "tailwindcss": "3.4.17",
     "typescript": "^5.8.3",
-    "eslint": "^10.2.0",
-    "eslint-plugin-vue": "^10.8.0",
-    "lint-staged": "^16.4.0",
     "vue-eslint-parser": "^10.4.0"
   }
 }
