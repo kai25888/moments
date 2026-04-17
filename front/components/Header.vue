@@ -5,8 +5,11 @@
   >
     <!-- 顶部导航栏 -->
     <div
-      :class="{ 'bg-white/90 dark:bg-neutral-800/90 backdrop-blur-md z-20 shadow-sm': y > 50 }"
-      class="flex fixed justify-between items-center px-4 w-full md:w-[567px] top-0 transition-all duration-200"
+      :class="{ 
+        '-translate-y-full': hideNav,
+        'translate-y-0': !hideNav
+      }"
+      class="flex fixed justify-between items-center px-4 w-full md:w-[567px] top-0 transition-all duration-300"
     >
       <!-- 左侧：返回按钮 -->
       <button class="w-8 h-8 rounded-full hover:bg-white/20 dark:hover:bg-gray-700 flex items-center justify-center transition-colors" title="返回主页" @click="navigateTo('/')">
@@ -59,6 +62,19 @@ const colorMode = useColorMode();
 
 const props = defineProps<{ user: UserVO }>();
 const { y } = useWindowScroll();
+const lastY = ref(0);
+const hideNav = ref(false);
+
+watch(y, (newY) => {
+  if (newY > lastY.value && newY > 100) {
+    // 下滑超过100px，隐藏导航栏
+    hideNav.value = true;
+  } else {
+    // 上滑，显示导航栏
+    hideNav.value = false;
+  }
+  lastY.value = newY;
+});
 
 const toggleColorMode = () => {
   colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark';
