@@ -183,6 +183,26 @@ func (m MemoHandler) ListMemos(c echo.Context) error {
 	tx.Session(&gorm.Session{}).Order("pinned desc, createdAt desc").Limit(req.Size).Offset(offset).Find(&list)
 	tx.Session(&gorm.Session{}).Count(&total)
 
+	// 获取当前用户的点赞状态
+	if currentUser != nil && len(list) > 0 {
+		memoIds := make([]int, len(list))
+		for i, memo := range list {
+			memoIds[i] = int(memo.Id)
+		}
+
+		var likes []db.MemoLike
+		m.base.db.Where("memoId IN ? AND userId = ?", memoIds, currentUser.Id).Find(&likes)
+
+		likedMap := make(map[int]bool)
+		for _, like := range likes {
+			likedMap[like.MemoId] = true
+		}
+
+		for i := range list {
+			list[i].Liked = likedMap[int(list[i].Id)]
+		}
+	}
+
 	for i := range list {
 		m.handleImgConfigs(&sysConfigVO, &list[i])
 	}
@@ -235,7 +255,7 @@ func (m MemoHandler) RemoveMemo(c echo.Context) error {
 //	@Accept		json
 //	@Produce	json
 //	@Param		id	query	int	true	"memoID"
-//	@Success	200
+//	@Success	200	{object}	h{"liked": bool}
 //	@Router		/api/memo/like [post]
 func (m MemoHandler) LikeMemo(c echo.Context) error {
 	var (
@@ -264,11 +284,45 @@ func (m MemoHandler) LikeMemo(c echo.Context) error {
 	if err = m.base.db.First(&memo, id).Error; errors.Is(err, gorm.ErrRecordNotFound) {
 		return FailResp(c, ParamError)
 	}
-	memo.FavCount = memo.FavCount + 1
-	if m.base.db.Updates(&memo).RowsAffected != 1 {
-		return FailRespWithMsg(c, Fail, "点赞失败")
+
+	ctx := c.(CustomContext)
+	currentUser := ctx.CurrentUser()
+
+	var like db.MemoLike
+	liked := false
+	err = m.base.db.Where("memoId = ? AND userId = ?", id, currentUser.Id).First(&like).Error
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// 未点赞，执行点赞
+		now := time.Now()
+		like = db.MemoLike{
+			MemoId:    id,
+			UserId:    currentUser.Id,
+			CreatedAt: &now,
+		}
+		if err = m.base.db.Create(&like).Error; err != nil {
+			return FailRespWithMsg(c, Fail, "点赞失败")
+		}
+		memo.FavCount = memo.FavCount + 1
+		liked = true
+	} else if err != nil {
+		return FailRespWithMsg(c, Fail, "查询点赞状态失败")
+	} else {
+		// 已点赞，取消点赞
+		if err = m.base.db.Delete(&like).Error; err != nil {
+			return FailRespWithMsg(c, Fail, "取消点赞失败")
+		}
+		memo.FavCount = memo.FavCount - 1
+		if memo.FavCount < 0 {
+			memo.FavCount = 0
+		}
+		liked = false
 	}
-	return SuccessResp(c, h{})
+
+	if m.base.db.Updates(&memo).RowsAffected != 1 {
+		return FailRespWithMsg(c, Fail, "更新点赞数失败")
+	}
+	return SuccessResp(c, h{"liked": liked})
 }
 
 // FindAndReplaceTags 处理 markdown 文本
@@ -437,6 +491,15 @@ func (m MemoHandler) GetMemo(c echo.Context) error {
 	tx.Find(&comments)
 
 	memo.Comments = comments
+
+	// 获取当前用户的点赞状态
+	if currentUser != nil {
+		var like db.MemoLike
+		err = m.base.db.Where("memoId = ? AND userId = ?", memo.Id, currentUser.Id).First(&like).Error
+		if err == nil {
+			memo.Liked = true
+		}
+	}
 
 	m.handleImgConfigs(&sysConfigVO, &memo)
 
