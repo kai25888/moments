@@ -22,7 +22,7 @@ RUN go build -tags prod -ldflags="-s -w -X main.version=${VERSION} -X main.commi
 
 FROM alpine
 WORKDIR /app/data
-RUN apk update --no-cache && apk add --no-cache ca-certificates tzdata
+RUN apk update --no-cache && apk add --no-cache ca-certificates tzdata ffmpeg
 ENV PORT=3000
 ENV TZ=Asia/Shanghai
 COPY --from=backend /app/moments /app/moments

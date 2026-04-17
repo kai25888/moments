@@ -125,9 +125,7 @@ func (f FileHandler) Upload(c echo.Context) error {
 			thumbUrl := url
 
 			if isImage {
-				// Async generate multi-size WebP thumbnails. We return the original
-				// URL as thumbUrl now; handleImgConfigs() will resolve the real WebP
-				// thumbnail on the next list/get request once generation completes.
+				// Async generate multi-size WebP thumbnails
 				baseName := path.Join(f.base.cfg.UploadDir, sha256Hash)
 				log := f.base.log
 				go func(srcPath, baseName string) {
@@ -135,6 +133,12 @@ func (f FileHandler) Upload(c echo.Context) error {
 						log.Error().Msgf("生成 WebP 缩略图异常: %v", err)
 					}
 				}(filePath, baseName)
+			} else if IsVideo(filename) {
+				// Async transcode video to H.264 for mobile compatibility
+				log := f.base.log
+				go func(srcPath string) {
+					TranscodeVideoIfNeeded(srcPath, log)
+				}(filePath)
 			}
 
 			return UploadRespItem{Url: url, ThumbUrl: thumbUrl}, nil
