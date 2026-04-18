@@ -68,8 +68,11 @@ func transcodeVideo(filePath string, log zerolog.Logger) error {
 	cmd := exec.Command("ffmpeg",
 		"-i", filePath,
 		"-c:v", "libx264",
-		"-preset", "fast",       // 编码速度和压缩率的平衡
-		"-crf", "23",            // 质量参数，18-28 之间，越小质量越好
+		"-preset", "fast",            // 编码速度和压缩率的平衡
+		"-crf", "23",                // 质量参数，18-28 之间，越小质量越好
+		"-profile:v", "baseline",    // 兼容性最高，支持所有设备
+		"-level", "3.0",             // 限制级别，避免高端特性
+		"-pix_fmt", "yuv420p",       // 强制8bit色深
 		"-c:a", "aac",
 		"-b:a", "128k",
 		"-movflags", "+faststart", // Web 播放优化：将 moov atom 移到文件开头
