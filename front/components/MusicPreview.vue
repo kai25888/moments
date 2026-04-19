@@ -14,7 +14,11 @@
     </div>
   </button>
 
+  <!-- 在线音乐模式：使用完整参数 -->
   <meting-js v-else-if="id && server && type && api" :server="server" :type="type" :id="id" :api="api"/>
+  
+  <!-- 纯API模式：只有api参数 -->
+  <meting-js v-else-if="api && !id && !server && !type" :api="api"/>
 </template>
 
 <script setup lang="ts">
@@ -39,7 +43,15 @@ watch(
   },
 )
 
-const shouldDeferLoad = computed(() => props.lazy && !activated.value && !!props.id && !!props.server && !!props.type && !!props.api)
+// 支持两种模式：在线音乐（需要 server/type/id）或 纯API模式（只需要 api）
+const shouldDeferLoad = computed(() => {
+  if (!props.lazy || activated.value) return false
+  // 在线音乐模式
+  if (props.id && props.server && props.type && props.api) return true
+  // 纯API模式
+  if (props.api && !props.id && !props.server && !props.type) return true
+  return false
+})
 </script>
 
 <style scoped>
