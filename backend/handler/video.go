@@ -26,32 +26,61 @@ func IsVideo(filename string) bool {
 	return videoExts[ext]
 }
 
-// probeVideoCodec 使用 ffprobe 检测视频的编码格式
-// 返回 "h264", "hevc", "vp9", "unknown" 等
-func probeVideoCodec(filePath string) (string, error) {
+// videoInfo 存储视频流的关键信息
+type videoInfo struct {
+	Codec   string
+	Profile string
+	PixFmt  string
+}
+
+// probeVideoInfo 使用 ffprobe 检测视频的编码格式、profile 和像素格式
+func probeVideoInfo(filePath string) (videoInfo, error) {
 	cmd := exec.Command("ffprobe",
 		"-v", "error",
 		"-select_streams", "v:0",
-		"-show_entries", "stream=codec_name",
+		"-show_entries", "stream=codec_name,profile,pix_fmt",
 		"-of", "default=noprint_wrappers=1:nokey=1",
 		filePath,
 	)
 	output, err := cmd.Output()
 	if err != nil {
-		return "unknown", fmt.Errorf("ffprobe 执行失败: %w", err)
+		return videoInfo{}, fmt.Errorf("ffprobe 执行失败: %w", err)
 	}
-	return strings.TrimSpace(string(output)), nil
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
+	info := videoInfo{}
+	if len(lines) >= 1 {
+		info.Codec = strings.TrimSpace(lines[0])
+	}
+	if len(lines) >= 2 {
+		info.Profile = strings.TrimSpace(lines[1])
+	}
+	if len(lines) >= 3 {
+		info.PixFmt = strings.TrimSpace(lines[2])
+	}
+	return info, nil
 }
 
 // needsTranscode 判断视频是否需要转码
-// H.264 和 H.263 不需要转码，其他编码（HEVC/H.265, VP9, AV1 等）需要转码
-func needsTranscode(codec string) bool {
-	switch strings.ToLower(codec) {
-	case "h264", "libx264", "avc":
-		return false
-	default:
+// 满足以下任一条件就需要转码：
+// 1. 非 H.264 编码
+// 2. H.264 但 profile 不是 Baseline（High、Main 等在部分设备不支持）
+// 3. 10bit 色深（yuv420p10le 等）
+func needsTranscode(info videoInfo) bool {
+	codec := strings.ToLower(info.Codec)
+	// 非 H.264，必须转码
+	if codec != "h264" && codec != "libx264" && codec != "avc" {
 		return true
 	}
+	// H.264 但 profile 不是 Baseline/Constrained Baseline，需要转码
+	profile := strings.ToLower(info.Profile)
+	if !strings.Contains(profile, "baseline") {
+		return true
+	}
+	// 10bit 像素格式，需要转码
+	if strings.Contains(strings.ToLower(info.PixFmt), "10") {
+		return true
+	}
+	return false
 }
 
 // transcodeVideo 使用 ffmpeg 将视频转码为 H.264 + AAC
@@ -122,24 +151,25 @@ func transcodeVideo(filePath string, log zerolog.Logger) error {
 	return nil
 }
 
-// TranscodeVideoIfNeeded 检测视频编码，如果需要则转码为 H.264
+// TranscodeVideoIfNeeded 检测视频编码，如果需要则转码为 H.264 Baseline
 // 这是给 Upload handler 调用的入口函数
 func TranscodeVideoIfNeeded(filePath string, log zerolog.Logger) {
 	if !IsVideo(filePath) {
 		return
 	}
 
-	// 检测编码格式
-	codec, err := probeVideoCodec(filePath)
+	// 检测编码格式、profile、像素格式
+	info, err := probeVideoInfo(filePath)
 	if err != nil {
 		log.Warn().Msgf("检测视频编码失败，跳过转码: %s, err: %v", filePath, err)
 		return
 	}
 
-	log.Info().Msgf("视频编码检测: %s → %s", filepath.Base(filePath), codec)
+	log.Info().Msgf("视频信息检测: %s → codec=%s profile=%s pix_fmt=%s",
+		filepath.Base(filePath), info.Codec, info.Profile, info.PixFmt)
 
-	if !needsTranscode(codec) {
-		log.Debug().Msgf("视频已是 H.264，无需转码: %s", filepath.Base(filePath))
+	if !needsTranscode(info) {
+		log.Debug().Msgf("视频已符合兼容要求（H.264 Baseline 8bit），无需转码: %s", filepath.Base(filePath))
 		return
 	}
 
