@@ -102,6 +102,9 @@ func transcodeVideo(filePath string, log zerolog.Logger) error {
 		"-profile:v", "baseline",    // 兼容性最高，支持所有设备
 		"-level", "4.0",             // 4.0 支持 4K(3840x2160)@30fps
 		"-pix_fmt", "yuv420p",       // 强制8bit色深
+		"-colorspace:v", "bt709",    // 强制转换色彩空间为 BT.709 SDR，解决 HLG/HDR 兼容性问题
+		"-color_primaries:v", "bt709",
+		"-color_transfer:v", "bt709",
 		"-c:a", "aac",
 		"-b:a", "128k",
 		"-movflags", "+faststart", // Web 播放优化：将 moov atom 移到文件开头
