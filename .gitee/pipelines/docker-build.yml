@@ -1,19 +1,13 @@
+version: '1.0'
 name: docker-build-push
 displayName: '构建并推送Docker镜像'
 
 triggers:
+  trigger: auto
   push:
-    - match:
-        payload:
-          ref:
-            include:
-              - moments-plus/main
-  tag:
-    - match:
-        payload:
-          ref:
-            include:
-              - v*
+    branches:
+      prefix:
+        - moments-plus/main
 
 variables:
   REGISTRY: 'crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com'
@@ -22,7 +16,7 @@ variables:
 
 stages:
   - name: stage-build
-    label: '构建推送'
+    displayName: '构建推送'
     strategy: naturally
 
 steps:
