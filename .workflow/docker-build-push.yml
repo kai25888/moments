@@ -1,0 +1,35 @@
+version: '1.0'
+name: docker-build-push
+displayName: 构建并推送Docker镜像
+triggers:
+  trigger: auto
+  push:
+    branches:
+      prefix:
+        - moments-plus/main
+variables:
+  REGISTRY: crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com
+  NAMESPACE: private_image_repositor
+  IMAGE_NAME: moments
+stages:
+  - name: stage-build
+    displayName: moments-plus
+    strategy: naturally
+    trigger: auto
+    steps:
+      - step: build@docker
+        name: build_docker
+        displayName: 镜像构建
+        type: cert
+        certificate: 91123c40-1f0b-013f-6b9d-4acb03eb81c4
+        tag: ${GITEE_PIPELINE_BUILD_NUMBER}
+        dockerfile: ./Dockerfile
+        context: ''
+        artifacts: []
+        isCache: false
+        processorType:
+          - amd64
+        parameter: {}
+        notify: []
+        strategy:
+          retry: '0'
