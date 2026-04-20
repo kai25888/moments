@@ -102,9 +102,9 @@ func transcodeVideo(filePath string, log zerolog.Logger) error {
 		"-profile:v", "baseline",    // 兼容性最高，支持所有设备
 		"-level", "4.0",             // 4.0 支持 4K(3840x2160)@30fps
 		"-pix_fmt", "yuv420p",       // 强制8bit色深
-		"-colorspace:v", "bt709",    // 强制转换色彩空间为 BT.709 SDR，解决 HLG/HDR 兼容性问题
-		"-color_primaries:v", "bt709",
-		"-color_trc:v", "bt709",
+		// 使用 colorspace filter 做真正的像素级色彩空间转换（BT.2020/HDR → BT.709/SDR）
+		// 注意：单独的 -colorspace:v/-color_primaries:v/-color_trc:v 只改 metadata 不转换像素
+		"-vf", "colorspace=all=bt709:iall=bt2020:fast=1",
 		"-c:a", "aac",
 		"-b:a", "128k",
 		"-movflags", "+faststart", // Web 播放优化：将 moov atom 移到文件开头
