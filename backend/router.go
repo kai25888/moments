@@ -43,6 +43,12 @@ func setupRouter(injector do.Injector) {
 	memoGroup.POST("/getDoubanMovieInfo", memoHandler.GetDoubanMovieInfo)
 	memoGroup.POST("/getDoubanBookInfo", memoHandler.GetDoubanBookInfo)
 
+	// 视频已读相关
+	memoViewHandler := handler.NewMemoViewHandler(injector)
+	memoGroup.POST("/view", memoViewHandler.AddView)
+	memoGroup.POST("/viewers", memoViewHandler.GetViewers)
+	memoGroup.POST("/myViews", memoViewHandler.GetMyViews)
+
 	commentGroup := apiGroup.Group("/comment")
 	commentGroup.POST("/list", commentHandler.ListComments)
 	commentGroup.POST("/add", commentHandler.AddComment)

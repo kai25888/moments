@@ -30,9 +30,11 @@ type MemoExt struct {
 }
 
 type Video struct {
-	Type   string `json:"type,omitempty"`   //视频类型,online:在线视频,youtube,bilibili
-	Value  string `json:"value,omitempty"`  //视频地址
-	Poster string `json:"poster,omitempty"` //可选封面图 URL（如本地上传时客户端抽取的首帧）
+	Type        string `json:"type,omitempty"`          //视频类型,online:在线视频,youtube,bilibili,local:本地上传
+	Value       string `json:"value,omitempty"`         //视频地址
+	Poster      string `json:"poster,omitempty"`        //封面图 URL（如本地上传时客户端抽取的首帧）
+	AspectRatio string `json:"aspectRatio,omitempty"`   //宽高比，如 "9:16" "16:9" "1:1"
+	DurationMs  int64  `json:"durationMs,omitempty"`   //视频时长，毫秒
 }
 
 type SaveMemoReq struct {
