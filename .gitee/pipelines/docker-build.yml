@@ -1,0 +1,52 @@
+name: 构建并推送 Docker 镜像
+
+on:
+  push:
+    branches:
+      - main
+  tags:
+    - 'v*'
+
+stages:
+  - name: build-and-push
+    tasks:
+      - name: docker-build
+        runs-on: ubuntu-latest
+        steps:
+          - name: Checkout
+            uses: checkout
+
+          - name: Build and Push
+            run: |
+              # 版本号处理
+              if [[ "$GITEE_REF" == refs/tags/v* ]]; then
+                VERSION="${GITEE_REF#refs/tags/v}"
+              else
+                VERSION="$(echo $GITEE_SHA | cut -c1-7)"
+              fi
+
+              # 阿里云镜像仓库地址（从截图获取）
+              REGISTRY=crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com
+              NAMESPACE=private_image_repositor
+              IMAGE_NAME=moments
+              FULL_IMAGE=${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}
+
+              echo "🚀 开始构建镜像，版本: ${VERSION}"
+              echo "📦 目标仓库: ${FULL_IMAGE}"
+
+              # 登录阿里云容器镜像服务
+              echo "${{ credentials.aliyun-cr.password }}" | docker login -u "${{ credentials.aliyun-cr.username }}" ${REGISTRY} --password-stdin
+
+              # 构建镜像（多标签）
+              docker build \
+                --build-arg VERSION="${VERSION}" \
+                --build-arg COMMIT_ID="${GITEE_SHA}" \
+                -t ${FULL_IMAGE}:latest \
+                -t ${FULL_IMAGE}:${VERSION} \
+                .
+
+              # 推送镜像
+              docker push ${FULL_IMAGE}:latest
+              docker push ${FULL_IMAGE}:${VERSION}
+
+              echo "✅ 镜像推送完成: ${FULL_IMAGE}:latest, ${FULL_IMAGE}:${VERSION}"
