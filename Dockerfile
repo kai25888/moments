@@ -1,4 +1,4 @@
-FROM 077825c4e700265c0fb4c000b0605f40.mirror.swr.myhuaweicloud.com/library/node:20.19.1-bookworm AS front
+FROM crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com/private_image_repositor/node:20.19.1-bookworm AS front
 WORKDIR /app
 RUN npm install -g pnpm@10.10.0
 COPY front/package.json .
@@ -8,11 +8,10 @@ RUN pnpm install
 COPY front/. .
 RUN pnpm run generate
 
-FROM 077825c4e700265c0fb4c000b0605f40.mirror.swr.myhuaweicloud.com/library/golang:1.23.3-alpine AS backend
+FROM crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com/private_image_repositor/golang:1.23.3-alpine AS backend
 ARG VERSION
 ARG COMMIT_ID
 WORKDIR /app
-RUN apk add --no-cache build-base tzdata
 COPY backend/go.mod .
 COPY backend/go.sum .
 RUN go mod download
@@ -20,9 +19,8 @@ COPY backend/. .
 COPY --from=front /app/.output/public /app/public
 RUN go build -tags prod -ldflags="-s -w -X main.version=${VERSION} -X main.commitId=${COMMIT_ID}" -o /app/moments
 
-FROM 077825c4e700265c0fb4c000b0605f40.mirror.swr.myhuaweicloud.com/library/alpine:latest
+FROM crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com/private_image_repositor/alpine:latest
 WORKDIR /app/data
-RUN apk update --no-cache && apk add --no-cache ca-certificates tzdata ffmpeg
 ENV PORT=3000
 ENV TZ=Asia/Shanghai
 COPY --from=backend /app/moments /app/moments
