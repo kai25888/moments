@@ -11,6 +11,7 @@ RUN pnpm run generate
 FROM crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com/private_image_repositor/golang:1.23.3-alpine AS backend
 ARG VERSION
 ARG COMMIT_ID
+ENV GOPROXY=https://goproxy.cn,direct
 WORKDIR /app
 COPY backend/go.mod .
 COPY backend/go.sum .
