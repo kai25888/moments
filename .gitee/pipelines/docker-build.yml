@@ -1,30 +1,31 @@
 version: '1.0'
 name: docker-build-push
-displayName: '构建并推送Docker镜像'
-
+displayName: Moments后端服务
 triggers:
   trigger: auto
   push:
     branches:
       prefix:
         - moments-plus/main
-
 stages:
   - name: stage-build
-    displayName: '构建推送'
+    displayName: moments-plus
     strategy: naturally
-
-steps:
-  - step: build@1
-    name: build_job
-    displayName: '构建并推送Docker镜像'
-    stage: stage-build
-    machine:
-      class: C2
-      image: latest
-    with:
-      dockerRepo: 'crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com'
-      dockerNamespace: 'private_image_repositor'
-      dockerImageName: 'moments'
-      dockerImageTag: '${GITEE_COMMIT_SHA:0:7}'
-      dockerfile: './Dockerfile'
+    trigger: auto
+    steps:
+      - step: build@docker
+        name: build_docker
+        displayName: 镜像构建
+        type: cert
+        certificate: 91123c40-1f0b-013f-6b9d-4acb03eb81c4
+        tag: crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com/private_image_repositor/moments:${GITEE_PIPELINE_BUILD_NUMBER}
+        dockerfile: ./Dockerfile
+        context: ''
+        artifacts: []
+        isCache: false
+        processorType:
+          - amd64
+        parameter: {}
+        notify: []
+        strategy:
+          retry: '0'
