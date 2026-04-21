@@ -20,7 +20,7 @@ stages:
     strategy: naturally
 
 steps:
-  - step: build@1
+  - step: exec@1
     name: build_job
     displayName: '构建并推送Docker镜像'
     stage: stage-build
@@ -29,21 +29,32 @@ steps:
       image: latest
     commands:
       - |
+        # 配置 Docker 镜像加速（解决国内无法访问 docker.io 的问题）
+        mkdir -p /etc/docker
+        cat > /etc/docker/daemon.json <<EOF
+        {
+          "registry-mirrors": [
+            "https://docker.1ms.run",
+            "https://docker.xuanyuan.me",
+            "https://docker.m.daocloud.io"
+          ]
+        }
+        EOF
+        
+        # 重启 Docker 服务使加速配置生效
+        service docker restart || dockerd &
+        sleep 5
+        
         # 版本号处理
-        if [[ "$GITEE_REF" == refs/tags/v* ]]; then
-          VERSION="${GITEE_REF#refs/tags/v}"
-        else
-          VERSION="$(echo $GITEE_COMMIT_SHA | cut -c1-7)"
-        fi
-
+        VERSION="$(echo $GITEE_COMMIT_SHA | cut -c1-7)"
         FULL_IMAGE=${REGISTRY}/${NAMESPACE}/${IMAGE_NAME}
-
+        
         echo "🚀 开始构建镜像，版本: ${VERSION}"
         echo "📦 目标仓库: ${FULL_IMAGE}"
-
+        
         # 登录阿里云容器镜像服务
         echo "${{ credentials.aliyun-cr.password }}" | docker login -u "${{ credentials.aliyun-cr.username }}" ${REGISTRY} --password-stdin
-
+        
         # 构建镜像
         docker build \
           --build-arg VERSION="${VERSION}" \
@@ -51,9 +62,9 @@ steps:
           -t ${FULL_IMAGE}:latest \
           -t ${FULL_IMAGE}:${VERSION} \
           .
-
+        
         # 推送镜像
         docker push ${FULL_IMAGE}:latest
         docker push ${FULL_IMAGE}:${VERSION}
-
-        echo "✅ 镜像推送完成: ${FULL_IMAGE}:latest, ${FULL_IMAGE}:${VERSION}"
+        
+        echo "✅ 镜像推送完成"
