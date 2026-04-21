@@ -22,7 +22,7 @@ stages:
         displayName: 镜像构建
         type: cert
         certificate: 91123c40-1f0b-013f-6b9d-4acb03eb81c4
-        tag: crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com/private_image_repositor/moments:${GITEE_PIPELINE_BUILD_NUMBER}
+        tag: private_image_repositor/moments:${GITEE_PIPELINE_BUILD_NUMBER}
         dockerfile: ./Dockerfile
         context: ''
         artifacts: []
