@@ -1,4 +1,4 @@
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/node:20.19.1-bookworm AS front
+FROM registry.cn-hangzhou.aliyuncs.com/library/node:20.19.1-bookworm AS front
 WORKDIR /app
 RUN npm install -g pnpm@10.10.0
 COPY front/package.json .
@@ -8,7 +8,7 @@ RUN pnpm install
 COPY front/. .
 RUN pnpm run generate
 
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/golang:1.23.3-alpine AS backend
+FROM registry.cn-hangzhou.aliyuncs.com/library/golang:1.23.3-alpine AS backend
 ARG VERSION
 ARG COMMIT_ID
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY backend/. .
 COPY --from=front /app/.output/public /app/public
 RUN go build -tags prod -ldflags="-s -w -X main.version=${VERSION} -X main.commitId=${COMMIT_ID}" -o /app/moments
 
-FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:latest
+FROM registry.cn-hangzhou.aliyuncs.com/library/alpine:latest
 WORKDIR /app/data
 RUN apk update --no-cache && apk add --no-cache ca-certificates tzdata ffmpeg
 ENV PORT=3000
