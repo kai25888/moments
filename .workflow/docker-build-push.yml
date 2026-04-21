@@ -1,6 +1,6 @@
 version: '1.0'
 name: docker-build-push
-displayName: 构建并推送Docker镜像
+displayName: Moments后端服务
 triggers:
   trigger: auto
   push:
