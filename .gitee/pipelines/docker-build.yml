@@ -9,11 +9,6 @@ triggers:
       prefix:
         - moments-plus/main
 
-variables:
-  REGISTRY: 'crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com'
-  NAMESPACE: 'private_image_repositor'
-  IMAGE_NAME: 'moments'
-
 stages:
   - name: stage-build
     displayName: '构建推送'
@@ -28,8 +23,8 @@ steps:
       class: C2
       image: latest
     with:
-      dockerRepo: '${REGISTRY}'
-      dockerNamespace: '${NAMESPACE}'
-      dockerImageName: '${IMAGE_NAME}'
+      dockerRepo: 'crpi-wcwep2opqtm0wq85.cn-shenzhen.personal.cr.aliyuncs.com'
+      dockerNamespace: 'private_image_repositor'
+      dockerImageName: 'moments'
       dockerImageTag: '${GITEE_COMMIT_SHA:0:7}'
       dockerfile: './Dockerfile'
